@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatApp - Connexion</title>
+    <link rel="stylesheet" href="style-complete.css?v=8">
+</head>
+<body>
+    <div id="auth-container">
+        <div class="auth-box">
+            <h1><img src="logo.png" alt="Ch4to Logo" onerror="this.style.display='none'"> ch4to</h1>
+            <p class="subtitle">Chat temps réel avec appels vidéo</p>
+            
+            <div id="login-form" class="form-container">
+                <h2>Connexion</h2>
+                <form id="loginForm">
+                    <input type="text" id="login-username" placeholder="Nom d'utilisateur" required>
+                    <input type="password" id="login-password" placeholder="Mot de passe" required>
+                    <button type="submit">Se connecter</button>
+                </form>
+                <p class="toggle-form">
+                    Pas de compte ? <a href="#" id="show-register">S'inscrire</a>
+                </p>
+            </div>
+
+            <div id="register-form" class="form-container" style="display: none;">
+                <h2>Inscription</h2>
+                <form id="registerForm">
+                    <input type="text" id="register-username" placeholder="Nom d'utilisateur" required>
+                    <input type="email" id="register-email" placeholder="Email" required>
+                    <input type="password" id="register-password" placeholder="Mot de passe (min. 6 caractères)" required>
+                    <button type="submit">S'inscrire</button>
+                </form>
+                <p class="toggle-form">
+                    Déjà un compte ? <a href="#" id="show-login">Se connecter</a>
+                </p>
+            </div>
+
+            <div id="error-message" class="error-message"></div>
+        </div>
+    </div>
+
+    <div id="chat-container" style="display: none;">
+        <div class="chat-header">
+            <div class="header-left">
+                <img src="logo.png" alt="Ch4to Logo" class="logo" onerror="this.style.display='none'">
+                <div>
+                    <h2>ch4to</h2>
+                    <span id="current-conversation">Sélectionnez une conversation</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <span id="current-user"></span>
+                <button id="logout-btn" class="btn-logout">Déconnexion</button>
+            </div>
+        </div>
+
+        <div class="chat-layout">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="friends">👥 Amis</button>
+                    <button class="tab-btn" data-tab="groups">👨‍👩‍👧‍👦 Groupes</button>
+                    <button class="tab-btn" data-tab="add">➕ Ajouter</button>
+                </div>
+
+                <!-- Tab Amis -->
+                <div class="tab-content active" id="friends-tab">
+                    <div class="search-box">
+                        <input type="text" id="friend-search" placeholder="🔍 Rechercher un ami...">
+                    </div>
+                    
+                    <div class="section">
+                        <h3>Demandes d'amis <span id="requests-count" class="badge">0</span></h3>
+                        <div id="friend-requests-list" class="list">
+                            <p class="empty-state">Aucune demande</p>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h3>Mes amis <span id="friends-count" class="badge">0</span></h3>
+                        <div id="friends-list" class="list">
+                            <p class="empty-state">Aucun ami pour le moment</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Groupes -->
+                <div class="tab-content" id="groups-tab">
+                    <button id="create-group-btn" class="btn-primary">➕ Créer un groupe</button>
+                    
+                    <div class="section">
+                        <h3>Mes groupes <span id="groups-count" class="badge">0</span></h3>
+                        <div id="groups-list" class="list">
+                            <p class="empty-state">Aucun groupe</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Ajouter -->
+                <div class="tab-content" id="add-tab">
+                    <div class="section">
+                        <h3>Rechercher des utilisateurs</h3>
+                        <div class="search-box">
+                            <input type="text" id="user-search" placeholder="Nom d'utilisateur...">
+                            <button id="search-users-btn" class="btn-primary">Chercher</button>
+                        </div>
+                        <div id="search-results" class="list">
+                            <p class="empty-state">Recherchez des utilisateurs à ajouter</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone de chat principale -->
+            <div class="chat-main">
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="welcome-content">
+                        <h2>👋 Bienvenue !</h2>
+                        <p>Sélectionnez une conversation pour commencer à discuter</p>
+                        <p class="welcome-tip">💡 Ajoutez des amis ou créez des groupes pour commencer</p>
+                    </div>
+                </div>
+
+                <div class="chat-area" id="chat-area" style="display: none;">
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Messages apparaîtront ici -->
+                    </div>
+
+                    <div class="chat-input">
+                        <input type="text" id="message-input" placeholder="Tapez votre message...">
+                        <button id="send-btn">Envoyer</button>
+                        <button id="call-btn" class="btn-call">📞 Appel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone d'appel vidéo -->
+        <div id="call-container" style="display: none;">
+            <div class="call-overlay">
+                <div class="call-box">
+                    <h3 id="call-status">Appel en cours...</h3>
+                    
+                    <div class="video-container">
+                        <video id="local-video" autoplay muted playsinline></video>
+                        <video id="remote-video" autoplay playsinline></video>
+                    </div>
+
+                    <div class="call-controls">
+                        <button id="toggle-audio" class="btn-control">🎤 Micro</button>
+                        <button id="toggle-video" class="btn-control">📹 Vidéo</button>
+                        <button id="end-call-btn" class="btn-end-call">Raccrocher</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification d'appel entrant -->
+        <div id="incoming-call" style="display: none;">
+            <div class="incoming-call-overlay">
+                <div class="incoming-call-box">
+                    <h3>📞 Appel entrant</h3>
+                    <p id="caller-name">Utilisateur</p>
+                    <div class="incoming-call-controls">
+                        <button id="accept-call-btn" class="btn-accept">Accepter</button>
+                        <button id="reject-call-btn" class="btn-reject">Refuser</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="auth.js?v=6"></script>
+    <script src="app.js?v=6"></script>
+</body>
+</html>

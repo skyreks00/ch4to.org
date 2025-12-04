@@ -1,0 +1,65 @@
+// Schéma Prisma pour MySQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int       @id @default(autoincrement())
+  username   String    @unique @db.VarChar(50)
+  email      String    @unique @db.VarChar(100)
+  password   String    @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastLogin  DateTime? @map("last_login")
+  
+  // Relations amis (envoyées)
+  friendRequestsSent     Friendship[] @relation("RequestSender")
+  // Relations amis (reçues)
+  friendRequestsReceived Friendship[] @relation("RequestReceiver")
+  // Membres de groupes
+  groupMemberships       GroupMember[]
+
+  @@map("users")
+}
+
+model Friendship {
+  id         Int      @id @default(autoincrement())
+  senderId   Int      @map("sender_id")
+  receiverId Int      @map("receiver_id")
+  status     String   @db.VarChar(20) // 'pending', 'accepted', 'rejected'
+  createdAt  DateTime @default(now()) @map("created_at")
+  
+  sender     User     @relation("RequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("RequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  @@unique([senderId, receiverId])
+  @@map("friendships")
+}
+
+model Group {
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(100)
+  creatorId   Int           @map("creator_id")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  
+  members     GroupMember[]
+  
+  @@map("groups")
+}
+
+model GroupMember {
+  id        Int      @id @default(autoincrement())
+  groupId   Int      @map("group_id")
+  userId    Int      @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
