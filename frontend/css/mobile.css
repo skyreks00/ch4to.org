@@ -1,0 +1,130 @@
+/* Mobile Responsive Styles */
+.mobile-back-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-normal);
+    cursor: pointer;
+    margin-right: 5px;
+    padding: 5px;
+}
+
+@media (max-width: 768px) {
+    .chat-layout {
+        position: relative;
+        width: 100%;
+    }
+
+    .sidebar {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 20;
+        transition: transform 0.3s ease;
+    }
+
+    .chat-main {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        z-index: 10;
+    }
+
+    .chat-layout.mobile-chat-active .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .mobile-back-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chat-header.mobile-chat-active .mobile-back-btn {
+        display: flex;
+    }
+
+    .chat-header:not(.mobile-chat-active) #current-conversation,
+    .chat-header:not(.mobile-chat-active) .header-avatar {
+        display: none !important;
+    }
+
+    .chat-header {
+        padding: 0 8px;
+    }
+
+    .logo {
+        height: 28px;
+        flex-shrink: 0;
+        margin-right: 8px;
+    }
+
+    .chat-header.mobile-chat-active .logo {
+        display: none !important;
+    }
+
+    .header-left span {
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+    }
+    
+    .modal-content {
+        width: 90%;
+        max-width: none;
+        margin: 20px;
+    }
+
+    .username-header {
+        display: none;
+    }
+
+    .logout-text {
+        display: none;
+    }
+
+    .logout-icon {
+        display: block !important;
+    }
+
+    .btn-logout {
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .header-right {
+        gap: 0.5rem;
+    }
+
+    .list-item {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .list-item .action-btn {
+        display: none !important;
+    }
+
+    .list-item.show-actions .action-btn {
+        display: flex !important;
+        animation: fadeIn 0.2s;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .chat-input {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+}

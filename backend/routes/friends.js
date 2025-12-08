@@ -4,14 +4,12 @@ const { prisma } = require('../utils/db');
 
 const router = express.Router();
 
-// Middleware pour vérifier l'authentification (Session OU Token JWT)
+// Middleware d'authentification (Session ou Token)
 const requireAuth = (req, res, next) => {
-  // Vérifier d'abord la session (cookies)
   if (req.session.userId) {
     return next();
   }
   
-  // Sinon, vérifier le token JWT dans l'header Authorization
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
@@ -28,14 +26,12 @@ const requireAuth = (req, res, next) => {
   return res.status(401).json({ error: 'Non authentifié' });
 };
 
-// Rechercher des utilisateurs
+// Recherche d'utilisateurs
 router.get('/search', requireAuth, async (req, res) => {
   try {
     const { query } = req.query;
-    console.log('🔍 Recherche d\'utilisateurs avec query:', query);
     
     if (!query || query.length < 2) {
-      console.log('⚠️ Query trop courte ou vide');
       return res.json([]);
     }
     
@@ -54,12 +50,12 @@ router.get('/search', requireAuth, async (req, res) => {
       select: {
         id: true,
         username: true,
-        email: true
+        email: true,
+        avatar: true
       },
       take: 10
     });
     
-    console.log(`✅ ${users.length} utilisateurs trouvés`);
     res.json(users);
   } catch (error) {
     console.error('Erreur recherche utilisateurs:', error);
@@ -67,7 +63,7 @@ router.get('/search', requireAuth, async (req, res) => {
   }
 });
 
-// Envoyer une demande d'ami
+// Envoi d'une demande d'ami
 router.post('/request', requireAuth, async (req, res) => {
   try {
     const { receiverId } = req.body;
@@ -81,7 +77,6 @@ router.post('/request', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Vous ne pouvez pas vous ajouter vous-même' });
     }
     
-    // Vérifier si une demande existe déjà
     const existing = await prisma.friendship.findFirst({
       where: {
         OR: [
@@ -102,6 +97,15 @@ router.post('/request', requireAuth, async (req, res) => {
         status: 'pending'
       }
     });
+
+    if (req.io) {
+      req.io.to(receiverId.toString()).emit('new_friend_request', {
+        sender: {
+          id: senderId,
+          username: req.session.username
+        }
+      });
+    }
     
     res.status(201).json(friendship);
   } catch (error) {
@@ -110,7 +114,7 @@ router.post('/request', requireAuth, async (req, res) => {
   }
 });
 
-// Obtenir les demandes d'ami en attente
+// Liste des demandes en attente
 router.get('/requests', requireAuth, async (req, res) => {
   try {
     const requests = await prisma.friendship.findMany({
@@ -123,7 +127,8 @@ router.get('/requests', requireAuth, async (req, res) => {
           select: {
             id: true,
             username: true,
-            email: true
+            email: true,
+            avatar: true
           }
         }
       }
@@ -136,7 +141,7 @@ router.get('/requests', requireAuth, async (req, res) => {
   }
 });
 
-// Accepter une demande d'ami
+// Accepter une demande
 router.post('/accept/:id', requireAuth, async (req, res) => {
   try {
     const friendshipId = parseInt(req.params.id);
@@ -153,6 +158,15 @@ router.post('/accept/:id', requireAuth, async (req, res) => {
       where: { id: friendshipId },
       data: { status: 'accepted' }
     });
+
+    if (req.io) {
+      req.io.to(friendship.senderId.toString()).emit('friend_request_accepted', {
+        user: {
+          id: req.session.userId,
+          username: req.session.username
+        }
+      });
+    }
     
     res.json(updated);
   } catch (error) {
@@ -161,7 +175,7 @@ router.post('/accept/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Refuser/Supprimer une demande d'ami
+// Refuser ou supprimer une demande
 router.delete('/request/:id', requireAuth, async (req, res) => {
   try {
     const friendshipId = parseInt(req.params.id);
@@ -190,7 +204,7 @@ router.delete('/request/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Obtenir la liste des amis
+// Liste des amis
 router.get('/list', requireAuth, async (req, res) => {
   try {
     const friendships = await prisma.friendship.findMany({
@@ -206,23 +220,52 @@ router.get('/list', requireAuth, async (req, res) => {
           select: {
             id: true,
             username: true,
-            email: true
+            email: true,
+            avatar: true
           }
         },
         receiver: {
           select: {
             id: true,
             username: true,
-            email: true
+            email: true,
+            avatar: true
           }
         }
       }
     });
     
-    // Retourner les friendships complètes (pas juste les users)
     res.json(friendships);
   } catch (error) {
     console.error('Erreur récupération amis:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Supprimer un ami
+router.delete('/:friendId', requireAuth, async (req, res) => {
+  try {
+    const friendId = parseInt(req.params.friendId);
+    const userId = req.session.userId;
+
+    await prisma.friendship.deleteMany({
+      where: {
+        OR: [
+          { senderId: userId, receiverId: friendId },
+          { senderId: friendId, receiverId: userId }
+        ]
+      }
+    });
+
+    if (req.io) {
+      req.io.to(friendId.toString()).emit('friend_removed', {
+        userId: userId
+      });
+    }
+
+    res.json({ message: 'Ami supprimé' });
+  } catch (error) {
+    console.error('Erreur suppression ami:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

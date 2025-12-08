@@ -13,6 +13,7 @@ model User {
   username   String    @unique @db.VarChar(50)
   email      String    @unique @db.VarChar(100)
   password   String    @db.VarChar(255)
+  avatar     String?   @db.VarChar(255)
   createdAt  DateTime  @default(now()) @map("created_at")
   lastLogin  DateTime? @map("last_login")
   
@@ -43,6 +44,7 @@ model Friendship {
 model Group {
   id          Int           @id @default(autoincrement())
   name        String        @db.VarChar(100)
+  avatar      String?       @db.VarChar(255)
   creatorId   Int           @map("creator_id")
   createdAt   DateTime      @default(now()) @map("created_at")
   

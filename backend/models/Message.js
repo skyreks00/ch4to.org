@@ -1,3 +1,7 @@
+/**
+ * Modèle MongoDB pour les messages du chat.
+ * Stocke le contenu, l'expéditeur, le type (texte/fichier) et les métadonnées.
+ */
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
@@ -10,16 +14,27 @@ const messageSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  avatar: {
+    type: String,
+    default: null
+  },
   content: {
     type: String,
     required: true,
     maxlength: 5000
   },
-  conversationType: {
+  type: {
     type: String,
-    enum: ['private', 'group'],
-    required: true
+    enum: ['text', 'image', 'file', 'system'],
+    default: 'text'
   },
+  fileUrl: {
+    type: String,
+    default: null
+  },
+  readBy: [{
+    type: Number
+  }],
   conversationId: {
     type: String,
     required: true
@@ -27,19 +42,14 @@ const messageSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
-  },
-  type: {
-    type: String,
-    enum: ['text', 'system'],
-    default: 'text'
   }
 });
 
-// Index pour améliorer les performances de recherche
+// Optimisation des recherches par conversation et par expéditeur
 messageSchema.index({ conversationId: 1, timestamp: -1 });
 messageSchema.index({ senderId: 1 });
 
-// Propriété virtuelle pour la compatibilité
+// Alias pour compatibilité frontend (message = content)
 messageSchema.virtual('message').get(function() {
   return this.content;
 });

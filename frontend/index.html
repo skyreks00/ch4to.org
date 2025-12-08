@@ -2,14 +2,21 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ch4to">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/logo-sq-bg.png">
+    <link rel="icon" href="assets/logo-sq.png" type="image/png">
     <title>ChatApp - Connexion</title>
-    <link rel="stylesheet" href="style-complete.css?v=8">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/mobile.css">
 </head>
 <body>
     <div id="auth-container">
         <div class="auth-box">
-            <h1><img src="logo.png" alt="Ch4to Logo" onerror="this.style.display='none'"> ch4to</h1>
+            <h1><img src="assets/logo.png" alt="Ch4to Logo" onerror="this.style.display='none'"> </h1>
             <p class="subtitle">Chat temps réel avec appels vidéo</p>
             
             <div id="login-form" class="form-container">
@@ -44,37 +51,39 @@
     <div id="chat-container" style="display: none;">
         <div class="chat-header">
             <div class="header-left">
-                <img src="logo.png" alt="Ch4to Logo" class="logo" onerror="this.style.display='none'">
+                <button id="mobile-back-btn" class="mobile-back-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <img src="assets/logo.png" alt="Ch4to Logo" class="logo" onerror="this.style.display='none'">
                 <div>
-                    <h2>ch4to</h2>
-                    <span id="current-conversation">Sélectionnez une conversation</span>
+                    <span id="current-conversation"></span>
                 </div>
             </div>
             <div class="header-right">
-                <span id="current-user"></span>
-                <button id="logout-btn" class="btn-logout">Déconnexion</button>
+                <div id="user-profile" class="user-profile-header" title="Changer d'avatar">
+                    <div id="current-user-avatar" class="avatar-small"></div>
+                    <span id="current-user" class="username-header"></span>
+                </div>
+                <button id="logout-btn" class="btn-logout" title="Déconnexion">
+                    <span class="logout-text">Déconnexion</span>
+                    <svg class="logout-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display: none;"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                </button>
             </div>
         </div>
 
         <div class="chat-layout">
-            <!-- Sidebar -->
             <div class="sidebar">
-                <div class="sidebar-tabs">
-                    <button class="tab-btn active" data-tab="friends">👥 Amis</button>
-                    <button class="tab-btn" data-tab="groups">👨‍👩‍👧‍👦 Groupes</button>
-                    <button class="tab-btn" data-tab="add">➕ Ajouter</button>
-                </div>
-
-                <!-- Tab Amis -->
                 <div class="tab-content active" id="friends-tab">
-                    <div class="search-box">
-                        <input type="text" id="friend-search" placeholder="🔍 Rechercher un ami...">
-                    </div>
                     
                     <div class="section">
-                        <h3>Demandes d'amis <span id="requests-count" class="badge">0</span></h3>
-                        <div id="friend-requests-list" class="list">
-                            <p class="empty-state">Aucune demande</p>
+                        <div class="section-header-row">
+                            <h3>Groupes <span id="groups-count" class="badge">0</span></h3>
+                            <button id="create-group-btn" class="btn-icon-add" title="Créer un groupe">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                            </button>
+                        </div>
+                        <div id="groups-list" class="list">
+                            <p class="empty-state">Aucun groupe</p>
                         </div>
                     </div>
 
@@ -84,60 +93,70 @@
                             <p class="empty-state">Aucun ami pour le moment</p>
                         </div>
                     </div>
-                </div>
 
-                <!-- Tab Groupes -->
-                <div class="tab-content" id="groups-tab">
-                    <button id="create-group-btn" class="btn-primary">➕ Créer un groupe</button>
-                    
                     <div class="section">
-                        <h3>Mes groupes <span id="groups-count" class="badge">0</span></h3>
-                        <div id="groups-list" class="list">
-                            <p class="empty-state">Aucun groupe</p>
+                        <h3>
+                            Demandes <span id="requests-count" class="badge">0</span>
+                            <button id="refresh-requests-btn" title="Actualiser" style="margin-left: auto; background: none; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                            </button>
+                        </h3>
+                        <div id="friend-requests-list" class="list">
+                            <p class="empty-state">Aucune demande</p>
                         </div>
                     </div>
-                </div>
 
-                <!-- Tab Ajouter -->
-                <div class="tab-content" id="add-tab">
                     <div class="section">
-                        <h3>Rechercher des utilisateurs</h3>
+                        <h3>Ajouter un ami</h3>
                         <div class="search-box">
                             <input type="text" id="user-search" placeholder="Nom d'utilisateur...">
-                            <button id="search-users-btn" class="btn-primary">Chercher</button>
+                            <button id="search-users-btn" class="btn-primary" style="margin-top: 8px; width: 100%;">Chercher</button>
                         </div>
-                        <div id="search-results" class="list">
-                            <p class="empty-state">Recherchez des utilisateurs à ajouter</p>
-                        </div>
+                        <div id="search-results" class="list"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Zone de chat principale -->
             <div class="chat-main">
                 <div class="welcome-screen" id="welcome-screen">
                     <div class="welcome-content">
-                        <h2>👋 Bienvenue !</h2>
+                        <h2>
+                            <svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor" style="vertical-align: middle; margin-right: 8px;"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+                            Bienvenue !
+                        </h2>
                         <p>Sélectionnez une conversation pour commencer à discuter</p>
-                        <p class="welcome-tip">💡 Ajoutez des amis ou créez des groupes pour commencer</p>
+                        <p class="welcome-tip">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: text-bottom; margin-right: 4px;"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/></svg>
+                            Ajoutez des amis ou créez des groupes pour commencer
+                        </p>
                     </div>
                 </div>
 
                 <div class="chat-area" id="chat-area" style="display: none;">
-                    <div class="chat-messages" id="chat-messages">
-                        <!-- Messages apparaîtront ici -->
+                    <div class="chat-messages" id="chat-messages"></div>
+                    
+                    <div id="typing-indicator" class="typing-indicator" style="display: none;">
+                        <div class="typing-text"></div>
+                        <span></span><span></span><span></span>
                     </div>
 
                     <div class="chat-input">
+                        <input type="file" id="file-upload" style="display: none;">
+                        <button id="upload-btn" class="btn-icon" title="Envoyer un fichier">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5.04-6.71l-2.75 3.54-1.96-2.36L6.5 17h11l-3.54-4.71z"/></svg>
+                        </button>
                         <input type="text" id="message-input" placeholder="Tapez votre message...">
-                        <button id="send-btn">Envoyer</button>
-                        <button id="call-btn" class="btn-call">📞 Appel</button>
+                        <button id="send-btn" title="Envoyer">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                        </button>
+                        <button id="call-btn" class="btn-call" title="Appel vocal">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.44-5.15-3.75-6.59-6.59l1.97-1.57c.27-.27.36-.66.25-1.01-.37-1.11-.56-2.3-.56-3.53 0-.55-.45-1-1-1H4.39c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Zone d'appel vidéo -->
         <div id="call-container" style="display: none;">
             <div class="call-overlay">
                 <div class="call-box">
@@ -149,31 +168,46 @@
                     </div>
 
                     <div class="call-controls">
-                        <button id="toggle-audio" class="btn-control">🎤 Micro</button>
-                        <button id="toggle-video" class="btn-control">📹 Vidéo</button>
-                        <button id="end-call-btn" class="btn-end-call">Raccrocher</button>
+                        <button id="toggle-audio" class="btn-control" title="Micro">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+                        </button>
+                        <button id="toggle-video" class="btn-control" title="Vidéo">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                        </button>
+                        <button id="end-call-btn" class="btn-end-call" title="Raccrocher">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.36 7.46 6 12 6s8.66 2.36 11.71 5.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Notification d'appel entrant -->
         <div id="incoming-call" style="display: none;">
             <div class="incoming-call-overlay">
                 <div class="incoming-call-box">
-                    <h3>📞 Appel entrant</h3>
+                    <h3>
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="vertical-align: bottom; margin-right: 8px;"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.44-5.15-3.75-6.59-6.59l1.97-1.57c.27-.27.36-.66.25-1.01-.37-1.11-.56-2.3-.56-3.53 0-.55-.45-1-1-1H4.39c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
+                        Appel entrant
+                    </h3>
                     <p id="caller-name">Utilisateur</p>
                     <div class="incoming-call-controls">
-                        <button id="accept-call-btn" class="btn-accept">Accepter</button>
-                        <button id="reject-call-btn" class="btn-reject">Refuser</button>
+                        <button id="accept-call-btn" class="btn-accept" title="Accepter">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.44-5.15-3.75-6.59-6.59l1.97-1.57c.27-.27.36-.66.25-1.01-.37-1.11-.56-2.3-.56-3.53 0-.55-.45-1-1-1H4.39c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z"/></svg>
+                        </button>
+                        <button id="reject-call-btn" class="btn-reject" title="Refuser">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.36 7.46 6 12 6s8.66 2.36 11.71 5.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div id="toast-container"></div>
+
     <script src="/socket.io/socket.io.js"></script>
-    <script src="auth.js?v=6"></script>
-    <script src="app.js?v=6"></script>
+    <script src="js/auth.js?v=7"></script>
+    <script src="js/app.js?v=7"></script>
+    <script src="js/group-management.js?v=1"></script>
 </body>
 </html>

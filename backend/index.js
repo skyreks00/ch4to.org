@@ -1,3 +1,7 @@
+/**
+ * Point d'entrée principal du serveur Backend.
+ * Configure Express, Socket.io, la base de données et les routes API.
+ */
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -5,8 +9,10 @@ const { Server } = require('socket.io');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
-const { connectMongoDB, disconnectDatabases } = require('./utils/db');
+const { connectMongoDB, disconnectDatabases, prisma } = require('./utils/db');
 const authRoutes = require('./routes/auth');
 const friendsRoutes = require('./routes/friends');
 const groupsRoutes = require('./routes/groups');
@@ -14,170 +20,285 @@ const Message = require('./models/Message');
 
 const app = express();
 const server = http.createServer(app);
+
+// Configuration Socket.io avec support CORS
 const io = new Server(server, {
   cors: {
-    origin: true, // Accept all origins
+    origin: true,
     methods: ["GET", "POST"],
-    credentials: true // Allow credentials for Socket.io too
+    credentials: true
   }
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware CORS - doit être configuré pour accepter les credentials
+// Middleware CORS pour accepter les requêtes cross-origin
 app.use(cors({
-  origin: true, // Accept all origins (or specify your Cloudflare domain)
-  credentials: true // IMPORTANT: Allow credentials (cookies)
+  origin: true,
+  credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuration de session
+// Gestion des sessions utilisateurs (cookies sécurisés pour HTTPS)
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // 24 heures
+    maxAge: 1000 * 60 * 60 * 24, // 24h
     httpOnly: true,
-    secure: true, // MUST be true for HTTPS (Cloudflare Tunnel uses HTTPS)
-    sameSite: 'none' // MUST be 'none' for cross-origin cookies with HTTPS
+    secure: true,
+    sameSite: 'none'
   }
 });
 
 app.use(sessionMiddleware);
 
-// Debug middleware - log toutes les requêtes API
-app.use('/api', (req, res, next) => {
-  console.log(`📨 ${req.method} ${req.path} - Session: ${req.session?.userId || 'none'} - Cookie: ${req.headers.cookie ? 'present' : 'missing'}`);
+// Rend l'instance Socket.io accessible dans les routes
+app.use((req, res, next) => {
+  req.io = io;
   next();
 });
 
-// Servir les fichiers statiques du frontend
-app.use(express.static(path.join(__dirname, '../frontend')));
+// Log des requêtes API pour le débogage
+app.use('/api', (req, res, next) => {
+  console.log(`📨 ${req.method} ${req.path} - Session: ${req.session?.userId || 'none'}`);
+  next();
+});
 
-// Routes API
+// Servir les fichiers statiques (Frontend et Uploads)
+app.use(express.static(path.join(__dirname, '../frontend')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configuration du stockage des fichiers uploadés
+const messageStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads/messages');
+    if (!fs.existsSync(uploadDir)){
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'msg-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const messageUpload = multer({ 
+  storage: messageStorage,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
+});
+
+// Endpoint pour l'upload de fichiers dans le chat
+app.post('/api/messages/upload', messageUpload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Aucun fichier' });
+  }
+  const fileUrl = `/uploads/messages/${req.file.filename}`;
+  res.json({ 
+    url: fileUrl,
+    filename: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size
+  });
+});
+
+// Routes API principales
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/groups', groupsRoutes);
 
-// Route pour récupérer les messages d'une conversation
+// Récupère l'historique des messages et enrichit avec les infos utilisateurs à jour
 app.get('/api/messages/:conversationId', async (req, res) => {
   try {
     console.log('📥 Requête de messages pour:', req.params.conversationId);
     
     const { conversationId } = req.params;
+    
+    // Récupération depuis MongoDB
     const messages = await Message.find({ conversationId })
       .sort({ timestamp: 1 })
-      .limit(100);
+      .limit(100)
+      .lean();
     
-    console.log(`✅ ${messages.length} messages trouvés pour ${conversationId}`);
-    res.json(messages);
+    // Récupération des infos utilisateurs depuis MySQL (Prisma)
+    const senderIds = [...new Set(messages.map(m => m.senderId))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: senderIds } },
+      select: { id: true, username: true, avatar: true }
+    });
+    
+    // Création d'une map pour enrichir rapidement les messages
+    const userMap = {};
+    users.forEach(user => { userMap[user.id] = user; });
+    
+    const enrichedMessages = messages.map(msg => {
+      const user = userMap[msg.senderId];
+      if (user) {
+        return { ...msg, username: user.username, avatar: user.avatar };
+      }
+      return msg;
+    });
+    
+    console.log(`✅ ${enrichedMessages.length} messages trouvés pour ${conversationId}`);
+    res.json(enrichedMessages);
   } catch (error) {
     console.error('Erreur récupération messages:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// Route par défaut - servir index.html pour toutes les routes non-API
+// Route Fallback : Sert l'application Frontend pour toute autre URL
 app.get('*', (req, res) => {
-  // Ne pas intercepter les routes API
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Route non trouvée' });
   }
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// Partager la session avec Socket.io
+// Partage de la session Express avec Socket.io
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
-// Gestion des connexions Socket.io
-const activeUsers = new Map(); // socketId -> {userId, username}
-const userSockets = new Map(); // userId -> socketId
+// Gestion du temps réel (Socket.io)
+const activeUsers = new Map();
+const userSockets = new Map();
 const callPeers = new Map();
 
 io.on('connection', (socket) => {
   console.log(`✅ Utilisateur connecté: ${socket.id}`);
   
-  // Enregistrer l'utilisateur en ligne
-  socket.on('user_online', (data) => {
+  // Gestion du statut en ligne et reconnexion aux salles
+  socket.on('user_online', async (data) => {
     const { userId, username } = data;
     activeUsers.set(socket.id, { userId, username });
     userSockets.set(userId, socket.id);
+    socket.join(userId.toString());
     console.log(`👤 ${username} (${userId}) est en ligne`);
+    
+    io.emit('user_status_change', { userId, status: 'online' });
+
+    // Reconnexion automatique aux salles (Amis et Groupes)
+    try {
+      const friendships = await prisma.friendship.findMany({
+        where: {
+          OR: [{ senderId: userId }, { receiverId: userId }],
+          status: 'accepted'
+        }
+      });
+
+      friendships.forEach(f => {
+        const otherId = f.senderId === userId ? f.receiverId : f.senderId;
+        const conversationId = `private_${Math.min(userId, otherId)}_${Math.max(userId, otherId)}`;
+        socket.join(conversationId);
+      });
+
+      const userGroups = await prisma.groupMember.findMany({
+        where: { userId: userId },
+        select: { groupId: true }
+      });
+
+      userGroups.forEach(g => {
+        socket.join(`group_${g.groupId}`);
+      });
+
+    } catch (error) {
+      console.error('Erreur auto-join rooms:', error);
+    }
+  });
+
+  // Vérification des utilisateurs en ligne
+  socket.on('check_online_status', (userIds, callback) => {
+    if (Array.isArray(userIds) && typeof callback === 'function') {
+      const onlineIds = userIds.filter(id => userSockets.has(parseInt(id)));
+      callback(onlineIds);
+    }
   });
   
-  // Rejoindre une conversation
-  socket.on('join_conversation', async (data) => {
-    const { conversationId, conversationType } = data;
-    socket.join(conversationId);
-    console.log(`💬 Socket ${socket.id} a rejoint la conversation: ${conversationId}`);
+  // Gestion des salles de conversation
+  socket.on('join_conversation', (data) => {
+    socket.join(data.conversationId);
+    console.log(`💬 Socket ${socket.id} a rejoint: ${data.conversationId}`);
   });
   
-  // Quitter une conversation
   socket.on('leave_conversation', (data) => {
-    const { conversationId } = data;
-    socket.leave(conversationId);
+    socket.leave(data.conversationId);
   });
   
-  // Recevoir un message
+  // Réception et diffusion d'un message
   socket.on('send_message', async (data) => {
     try {
-      const { conversationId, conversationType, username, message, senderId } = data;
+      const { conversationId, conversationType, username, message, senderId, avatar, type, fileUrl } = data;
       
-      // Créer l'objet message pour MongoDB
       const messageData = {
         conversationId,
         conversationType: conversationType || (conversationId.startsWith('private_') ? 'private' : 'group'),
         senderId: senderId || 0,
         username,
-        content: message,
-        timestamp: new Date()
+        avatar,
+        content: message || '',
+        type: type || 'text',
+        fileUrl: fileUrl || null,
+        timestamp: new Date(),
+        readBy: [senderId]
       };
       
-      // Sauvegarder dans MongoDB
+      // Sauvegarde MongoDB et diffusion
       try {
         const newMessage = await Message.create(messageData);
         
-        // Diffuser à tous les clients de la conversation
         io.to(conversationId).emit('receive_message', {
           id: newMessage._id,
-          conversationId,
-          senderId: messageData.senderId,
-          username: messageData.username,
-          message: messageData.content,
-          content: messageData.content,
-          timestamp: messageData.timestamp,
+          ...messageData,
           createdAt: messageData.timestamp
         });
         
-        console.log(`💬 Message de ${username} dans ${conversationId}: ${message}`);
+        console.log(`💬 Message (${messageData.type}) de ${username} dans ${conversationId}`);
+
       } catch (dbError) {
         console.error('Erreur MongoDB:', dbError);
-        // Envoyer quand même le message même si MongoDB échoue
+        // Mode dégradé si BDD HS
         io.to(conversationId).emit('receive_message', {
           id: Date.now().toString(),
-          conversationId,
-          senderId: messageData.senderId,
-          username: messageData.username,
-          message: message,
-          content: message,
-          timestamp: new Date()
+          ...messageData
         });
       }
     } catch (error) {
       console.error('Erreur envoi message:', error);
     }
   });
+
+  // Indicateurs de frappe
+  socket.on('typing', (data) => {
+    socket.to(data.conversationId).emit('user_typing', data);
+  });
+
+  socket.on('stop_typing', (data) => {
+    socket.to(data.conversationId).emit('user_stop_typing', data);
+  });
+
+  // Gestion des accusés de lecture
+  socket.on('mark_read', async (data) => {
+    const { conversationId, userId } = data;
+    try {
+      await Message.updateMany(
+        { conversationId, readBy: { $ne: userId } },
+        { $addToSet: { readBy: userId } }
+      );
+      socket.to(conversationId).emit('messages_read', { conversationId, userId });
+    } catch (error) {
+      console.error('Erreur mark_read:', error);
+    }
+  });
   
-  // WebRTC Signaling - Offre
+  // WebRTC - Signalisation pour les appels
   socket.on('call_offer', (data) => {
-    const { to, offer, from, fromUsername } = data;
+    const { to, offer, fromUsername } = data;
     console.log(`📞 Appel de ${fromUsername} vers userId ${to}`);
     
-    // Trouver le socket du destinataire par userId
     const toSocketId = userSockets.get(to);
     if (toSocketId) {
       callPeers.set(socket.id, toSocketId);
@@ -188,41 +309,24 @@ io.on('connection', (socket) => {
         fromUsername,
         offer
       });
-    } else {
-      console.log(`❌ Utilisateur ${to} non trouvé`);
     }
   });
   
-  // WebRTC Signaling - Réponse
   socket.on('call_answer', (data) => {
-    const { to, answer } = data;
-    console.log(`📞 Réponse d'appel vers socketId ${to}`);
-    
-    io.to(to).emit('call_answered', {
-      answer
-    });
+    io.to(data.to).emit('call_answered', { answer: data.answer });
   });
   
-  // WebRTC Signaling - ICE Candidate
   socket.on('ice_candidate', (data) => {
-    const { to, candidate } = data;
-    io.to(to).emit('ice_candidate', {
-      candidate
-    });
+    io.to(data.to).emit('ice_candidate', { candidate: data.candidate });
   });
   
-  // Terminer un appel
   socket.on('end_call', (data) => {
-    const { to } = data;
-    console.log(`📴 Appel terminé`);
-    
-    io.to(to).emit('call_ended');
-    
+    io.to(data.to).emit('call_ended');
     callPeers.delete(socket.id);
-    callPeers.delete(to);
+    callPeers.delete(data.to);
   });
   
-  // Déconnexion
+  // Gestion de la déconnexion
   socket.on('disconnect', async () => {
     const userInfo = activeUsers.get(socket.id);
     
@@ -231,35 +335,71 @@ io.on('connection', (socket) => {
       userSockets.delete(userId);
       activeUsers.delete(socket.id);
       console.log(`❌ ${username} déconnecté`);
+      
+      io.emit('user_status_change', { userId, status: 'offline' });
     }
     
-    // Nettoyer les appels en cours
     const callPeer = callPeers.get(socket.id);
     if (callPeer) {
       io.to(callPeer).emit('call_ended');
       callPeers.delete(callPeer);
       callPeers.delete(socket.id);
     }
-    
-    console.log(`❌ Utilisateur déconnecté: ${socket.id}`);
   });
 });
 
-// Démarrage du serveur
+// Tâche planifiée : Suppression des fichiers > 3 jours
+const cleanupOldFiles = () => {
+  const uploadDir = path.join(__dirname, 'uploads/messages');
+  const MAX_AGE = 3 * 24 * 60 * 60 * 1000; // 3 jours
+  
+  if (!fs.existsSync(uploadDir)) return;
+
+  fs.readdir(uploadDir, (err, files) => {
+    if (err) {
+      console.error('❌ Erreur lecture dossier uploads:', err);
+      return;
+    }
+
+    const now = Date.now();
+    let deletedCount = 0;
+
+    files.forEach(file => {
+      const filePath = path.join(uploadDir, file);
+      fs.stat(filePath, (err, stats) => {
+        if (err) return;
+
+        if (now - stats.mtime.getTime() > MAX_AGE) {
+          fs.unlink(filePath, (err) => {
+            if (err) console.error(`❌ Erreur suppression ${file}:`, err);
+            else {
+              deletedCount++;
+              console.log(`🗑️ Fichier supprimé (expiration): ${file}`);
+            }
+          });
+        }
+      });
+    });
+  });
+};
+
+// Initialisation et démarrage du serveur
 const startServer = async () => {
   try {
-    // Connexion MongoDB (optionnelle pour le test)
+    // Connexion aux bases de données
     try {
       await connectMongoDB();
     } catch (mongoError) {
-      console.warn('⚠️ MongoDB non disponible - Les messages ne seront pas sauvegardés');
-      console.warn('   Pour activer la persistance, installez MongoDB ou utilisez MongoDB Atlas');
+      console.warn('⚠️ MongoDB non disponible - Persistance désactivée');
     }
     
-    // Démarrer le serveur
+    // Lancement du nettoyage automatique (immédiat + toutes les 24h)
+    cleanupOldFiles();
+    setInterval(cleanupOldFiles, 24 * 60 * 60 * 1000);
+    
     server.listen(PORT, () => {
       console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
-      console.log(`📡 Socket.io prêt pour les connexions temps réel`);
+      console.log(`📡 Socket.io prêt`);
     });
   } catch (error) {
     console.error('❌ Erreur au démarrage:', error);
@@ -267,7 +407,7 @@ const startServer = async () => {
   }
 };
 
-// Gestion de l'arrêt propre
+// Gestion de l'arrêt propre (SIGINT/SIGTERM)
 process.on('SIGINT', async () => {
   console.log('\n🛑 Arrêt du serveur...');
   await disconnectDatabases();
