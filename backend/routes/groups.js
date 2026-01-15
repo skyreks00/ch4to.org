@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { prisma } = require('../utils/db');
+const Message = require('../models/Message');
 
 const router = express.Router();
 
@@ -109,6 +110,23 @@ router.post('/create', requireAuth, async (req, res) => {
       }
     });
     
+    // Message système de création
+    try {
+      const systemMsg = await Message.create({
+        conversationId: `group_${group.id}`,
+        senderId: req.session.userId,
+        username: 'Système',
+        content: `Groupe "${group.name}" créé par ${req.session.username}`,
+        type: 'system'
+      });
+      
+      if (req.io) {
+        req.io.to(`group_${group.id}`).emit('receive_message', systemMsg);
+      }
+    } catch (msgError) {
+      console.error('Erreur message système groupe:', msgError);
+    }
+
     res.status(201).json(group);
   } catch (error) {
     console.error('Erreur création groupe:', error);
@@ -192,6 +210,24 @@ router.post('/:groupId/members', requireAuth, async (req, res) => {
       }
     });
     
+    // Message système d'ajout
+    try {
+      const addedUser = await prisma.user.findUnique({ where: { id: userId } });
+      const systemMsg = await Message.create({
+        conversationId: `group_${groupId}`,
+        senderId: req.session.userId,
+        username: 'Système',
+        content: `${req.session.username} a ajouté ${addedUser ? addedUser.username : 'un membre'} au groupe`,
+        type: 'system'
+      });
+      
+      if (req.io) {
+        req.io.to(`group_${groupId}`).emit('receive_message', systemMsg);
+      }
+    } catch (msgError) {
+      console.error('Erreur message système ajout membre:', msgError);
+    }
+
     res.status(201).json(newMember);
   } catch (error) {
     console.error('Erreur ajout membre:', error);
@@ -228,6 +264,24 @@ router.delete('/:groupId/members/:userId', requireAuth, async (req, res) => {
         userId: targetUserId
       }
     });
+
+    // Message système de suppression
+    try {
+      const kickedUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+      const systemMsg = await Message.create({
+        conversationId: `group_${groupId}`,
+        senderId: req.session.userId,
+        username: 'Système',
+        content: `${req.session.username} a retiré ${kickedUser ? kickedUser.username : 'un membre'} du groupe`,
+        type: 'system'
+      });
+      
+      if (req.io) {
+        req.io.to(`group_${groupId}`).emit('receive_message', systemMsg);
+      }
+    } catch (msgError) {
+      console.error('Erreur message système suppression membre:', msgError);
+    }
 
     res.json({ message: 'Membre supprimé du groupe' });
   } catch (error) {
@@ -312,6 +366,23 @@ router.delete('/:groupId/leave', requireAuth, async (req, res) => {
       }
     });
     
+    // Message système de départ
+    try {
+      const systemMsg = await Message.create({
+        conversationId: `group_${groupId}`,
+        senderId: req.session.userId,
+        username: 'Système',
+        content: `${req.session.username} a quitté le groupe`,
+        type: 'system'
+      });
+      
+      if (req.io) {
+        req.io.to(`group_${groupId}`).emit('receive_message', systemMsg);
+      }
+    } catch (msgError) {
+      console.error('Erreur message système quitter groupe:', msgError);
+    }
+
     res.json({ message: 'Vous avez quitté le groupe' });
   } catch (error) {
     console.error('Erreur quitter groupe:', error);

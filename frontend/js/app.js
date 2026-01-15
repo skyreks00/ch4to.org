@@ -189,7 +189,7 @@ function setupEventListeners() {
     // Recherche d'amis locale (désactivée)
     const friendSearchInput = document.getElementById('friend-search');
     if (friendSearchInput) {
-        friendSearchInput.addEventListener('input', (e) => {
+        friendSearchInput.addEventListener('input+', (e) => {
             filterFriends(e.target.value);
         });
     }
@@ -691,11 +691,11 @@ function displayFriends() {
         }
 
         return `
-            <div id="nav-item-${conversationId}" class="list-item ${currentConversation === conversationId ? 'active' : ''}" onclick="openConversation('${conversationId}', '${friendUser.username}', 'private')">
+            <div id="nav-item-${conversationId}" class="list-item ${currentConversation === conversationId ? 'active' : ''}" onclick="openConversation('${conversationId}', '${escapeHtml(friendUser.username).replace(/'/g, "\\'")}', 'private')">
                 <div class="user-info">
                     ${avatarHtml}
                     <div>
-                        <div class="username">${friendUser.username}</div>
+                        <div class="username">${escapeHtml(friendUser.username)}</div>
                         <div class="status" id="status-${friendUser.id}" style="font-size: 12px; color: var(--text-muted);">Hors ligne</div>
                     </div>
                 </div>
@@ -762,7 +762,7 @@ function displayFriendRequests() {
             <div class="user-info">
                 ${avatarHtml}
                 <div>
-                    <div class="username">${request.sender.username}</div>
+                    <div class="username">${escapeHtml(request.sender.username)}</div>
                     <div class="status">Demande d'ami</div>
                 </div>
             </div>
@@ -802,11 +802,11 @@ function displayGroups() {
         }
 
         return `
-            <div id="nav-item-${conversationId}" class="list-item ${currentConversation === conversationId ? 'active' : ''}" onclick="openConversation('${conversationId}', '${group.name}', 'group')">
+            <div id="nav-item-${conversationId}" class="list-item ${currentConversation === conversationId ? 'active' : ''}" onclick="openConversation('${conversationId}', '${escapeHtml(group.name).replace(/'/g, "\\'")}', 'group')">
                 <div class="user-info">
                     ${avatarHtml}
                     <div>
-                        <div class="username">${group.name}</div>
+                        <div class="username">${escapeHtml(group.name)}</div>
                         <div class="status">${group.members?.length || 0} membres</div>
                     </div>
                 </div>
@@ -1191,9 +1191,35 @@ async function loadMessages(conversationId) {
     }
 }
 
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // Afficher un message
 function displayMessage(data) {
     const messagesContainer = document.getElementById('chat-messages');
+    
+    // Gestion des messages système
+    if (data.type === 'system') {
+        const systemDiv = document.createElement('div');
+        systemDiv.className = 'system-message';
+        systemDiv.style.textAlign = 'center';
+        systemDiv.style.color = 'var(--text-muted)';
+        systemDiv.style.fontSize = '0.85em';
+        systemDiv.style.margin = '10px 0';
+        systemDiv.style.fontStyle = 'italic';
+        systemDiv.innerHTML = `<span>${escapeHtml(data.message || data.content)}</span>`;
+        messagesContainer.appendChild(systemDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        return;
+    }
+
     const isOwn = data.senderId === appCurrentUser.id || data.username === appCurrentUser.username;
     
     const messageDiv = document.createElement('div');
@@ -1226,21 +1252,22 @@ function displayMessage(data) {
             <img src="${data.fileUrl}" class="message-image" alt="Image partagée" onclick="window.open(this.src, '_blank')">
         </div>`;
     } else if (isFile && data.fileUrl) {
+        const fileName = data.message || data.content || 'Fichier';
         contentHtml = `<div class="message-file">
             <a href="${data.fileUrl}" target="_blank" class="file-link" download>
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="vertical-align: middle; margin-right: 8px;"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                ${data.message || 'Fichier'}
+                ${escapeHtml(fileName)}
             </a>
         </div>`;
     } else {
-        contentHtml = `<div class="message-text">${data.message || data.content}</div>`;
+        contentHtml = `<div class="message-text">${escapeHtml(data.message || data.content || '')}</div>`;
     }
 
     messageDiv.innerHTML = `
         ${avatarHtml}
         <div class="message-content">
             <div class="message-header">
-                <span class="message-username">${username}</span>
+                <span class="message-username">${escapeHtml(username)}</span>
                 <span class="message-time">${messageTime}</span>
             </div>
             ${contentHtml}

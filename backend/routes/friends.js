@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../utils/db');
+const Message = require('../models/Message');
 
 const router = express.Router();
 
@@ -158,6 +159,25 @@ router.post('/accept/:id', requireAuth, async (req, res) => {
       where: { id: friendshipId },
       data: { status: 'accepted' }
     });
+
+    // Créer un message système pour la nouvelle conversation
+    const conversationId = `private_${Math.min(friendship.senderId, friendship.receiverId)}_${Math.max(friendship.senderId, friendship.receiverId)}`;
+    
+    try {
+      const systemMsg = await Message.create({
+        conversationId: conversationId,
+        senderId: req.session.userId,
+        username: 'Système',
+        content: `${req.session.username} a accepté la demande d'ami.`,
+        type: 'system'
+      });
+      
+      if (req.io) {
+        req.io.to(conversationId).emit('receive_message', systemMsg);
+      }
+    } catch (msgError) {
+      console.error('Erreur création message système:', msgError);
+    }
 
     if (req.io) {
       req.io.to(friendship.senderId.toString()).emit('friend_request_accepted', {

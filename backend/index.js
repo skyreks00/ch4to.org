@@ -119,9 +119,12 @@ app.get('/api/messages/:conversationId', async (req, res) => {
     
     // Récupération depuis MongoDB
     const messages = await Message.find({ conversationId })
-      .sort({ timestamp: 1 })
+      .sort({ timestamp: -1 })
       .limit(100)
       .lean();
+    
+    // Remettre dans l'ordre chronologique
+    messages.reverse();
     
     // Récupération des infos utilisateurs depuis MySQL (Prisma)
     const senderIds = [...new Set(messages.map(m => m.senderId))];
