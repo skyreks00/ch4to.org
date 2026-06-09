@@ -1,7 +1,4 @@
-/**
- * Script de présentation de la STRUCTURE des bases de données
- * Affiche le schéma complet de MySQL et MongoDB
- */
+
 
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
@@ -9,7 +6,7 @@ const mongoose = require('mongoose');
 
 const prisma = new PrismaClient();
 
-// Couleurs pour le terminal
+
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -57,7 +54,7 @@ async function showMySQLStructure() {
   console.log('\n' + colors.bright + 'Architecture: Prisma ORM avec MySQL' + colors.reset);
   console.log('Objectif: Gestion des utilisateurs, relations sociales et groupes\n');
 
-  // Table Users
+  
   printTable('users', '👤');
   printField('id', 'INT', ['PRIMARY KEY', 'AUTO_INCREMENT']);
   printField('username', 'VARCHAR(50)', ['UNIQUE', 'NOT NULL']);
@@ -68,7 +65,7 @@ async function showMySQLStructure() {
   printLastField('last_login', 'DATETIME', ['NULLABLE']);
   printRelation('Relations: friendRequestsSent[], friendRequestsReceived[], groupMemberships[]');
 
-  // Table Friendships
+  
   printTable('friendships', '🤝');
   printField('id', 'INT', ['PRIMARY KEY', 'AUTO_INCREMENT']);
   printField('sender_id', 'INT', ['FOREIGN KEY → users.id', 'CASCADE']);
@@ -78,7 +75,7 @@ async function showMySQLStructure() {
   printIndex('UNIQUE INDEX: (sender_id, receiver_id)');
   printRelation('Relations: sender → User, receiver → User');
 
-  // Table Groups
+  
   printTable('groups', '👥');
   printField('id', 'INT', ['PRIMARY KEY', 'AUTO_INCREMENT']);
   printField('name', 'VARCHAR(100)', ['NOT NULL']);
@@ -87,7 +84,7 @@ async function showMySQLStructure() {
   printLastField('created_at', 'DATETIME', ['DEFAULT NOW()']);
   printRelation('Relations: members[]');
 
-  // Table Group_Members
+  
   printTable('group_members', '👤👥');
   printField('id', 'INT', ['PRIMARY KEY', 'AUTO_INCREMENT']);
   printField('group_id', 'INT', ['FOREIGN KEY → groups.id', 'CASCADE']);
@@ -96,7 +93,7 @@ async function showMySQLStructure() {
   printIndex('UNIQUE INDEX: (group_id, user_id)');
   printRelation('Relations: group → Group, user → User');
 
-  // Statistiques
+  
   try {
     const userCount = await prisma.user.count();
     const friendshipCount = await prisma.friendship.count();
@@ -119,7 +116,7 @@ async function showMongoDBStructure() {
   console.log('\n' + colors.bright + 'Architecture: Mongoose ODM avec MongoDB' + colors.reset);
   console.log('Objectif: Stockage flexible des messages de chat en temps réel\n');
 
-  // Collection Messages
+  
   printTable('messages', '💬');
   printField('_id', 'ObjectId', ['PRIMARY KEY', 'AUTO-GENERATED']);
   printField('username', 'String', ['REQUIRED', 'TRIMMED']);
@@ -143,7 +140,7 @@ async function showMongoDBStructure() {
   console.log(`     • private_X_Y → conversation privée entre users X et Y`);
   console.log(`     • group_Z → conversation de groupe Z`);
 
-  // Statistiques
+  
   try {
     await mongoose.connect(process.env.MONGODB_URI);
     

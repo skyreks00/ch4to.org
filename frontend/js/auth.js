@@ -23,19 +23,50 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessage = document.getElementById('error-message');
     const logoutBtn = document.getElementById('logout-btn');
     const currentUserSpan = document.getElementById('current-user');
+    const landing = document.getElementById('landing');
+    const landingLoginBtn = document.getElementById('landing-login');
+    const landingRegisterBtn = document.getElementById('landing-register');
+    const requestedView = new URLSearchParams(window.location.search).get('view');
+
+    function showLanding() {
+        if (requestedView === 'login' || requestedView === 'register') {
+            showAuthForm(requestedView);
+            return;
+        }
+
+        window.location.href = 'landing.html';
+    }
+
+    function showAuthForm(type) {
+        if (landing) {
+            landing.style.display = 'none';
+        }
+
+        if (type === 'register') {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        } else {
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        }
+        errorMessage.textContent = '';
+    }
+
+    if (landingLoginBtn) {
+        landingLoginBtn.addEventListener('click', () => showAuthForm('login'));
+    }
+    if (landingRegisterBtn) {
+        landingRegisterBtn.addEventListener('click', () => showAuthForm('register'));
+    }
 
     showRegisterLink.addEventListener('click', (e) => {
         e.preventDefault();
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('register-form').style.display = 'block';
-        errorMessage.textContent = '';
+        showAuthForm('register');
     });
 
     showLoginLink.addEventListener('click', (e) => {
         e.preventDefault();
-        document.getElementById('register-form').style.display = 'none';
-        document.getElementById('login-form').style.display = 'block';
-        errorMessage.textContent = '';
+        showAuthForm('login');
     });
 
     registerForm.addEventListener('submit', async (e) => {
@@ -119,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentUser = null;
             authContainer.style.display = 'flex';
             chatContainer.style.display = 'none';
+            showLanding();
             
             if (window.socket) {
                 window.socket.disconnect();
@@ -139,9 +171,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.authenticated) {
                 currentUser = data.user;
                 showChatInterface();
+            } else {
+                showLanding();
             }
         } catch (error) {
             console.error('Erreur vérification auth:', error);
+            showLanding();
         }
     }
 
@@ -174,6 +209,10 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             errorMessage.textContent = '';
         }, 5000);
+    }
+
+    if (requestedView === 'login' || requestedView === 'register') {
+        showAuthForm(requestedView);
     }
 
     checkAuth();

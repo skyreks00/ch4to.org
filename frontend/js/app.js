@@ -1,4 +1,4 @@
-// Variables globales
+
 let appCurrentUser = null;
 let currentConversation = null;
 let currentConversationName = null;
@@ -8,7 +8,7 @@ let friends = [];
 let groups = [];
 let friendRequests = [];
 
-// Système de notifications Toast
+
 function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
@@ -31,7 +31,7 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Modal de saisie
+
 function showInputModal(title, placeholder, callback) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -74,7 +74,7 @@ function showInputModal(title, placeholder, callback) {
     });
 }
 
-// Modal de confirmation
+
 function showConfirmModal(title, message, onConfirm) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -101,7 +101,7 @@ function showConfirmModal(title, message, onConfirm) {
     document.getElementById('modal-cancel-action').onclick = close;
 }
 
-// Helper pour headers JWT
+
 function getAuthHeaders() {
     const token = localStorage.getItem('authToken');
     const headers = {
@@ -113,7 +113,7 @@ function getAuthHeaders() {
     return headers;
 }
 
-// Variables WebRTC
+
 let localStream = null;
 let peerConnection = null;
 let remoteUserId = null;
@@ -130,7 +130,7 @@ const iceServers = {
     iceCandidatePoolSize: 10
 };
 
-// Initialisation de l'application
+
 function initializeApp(user) {
     appCurrentUser = user;
     document.getElementById('current-user').textContent = user.username;
@@ -149,7 +149,7 @@ function initializeApp(user) {
     setupMobileLongPress();
     setupChatFeatures();
 
-    // Gestion bouton retour mobile
+    
     const backBtn = document.getElementById('mobile-back-btn');
     if (backBtn) {
         backBtn.onclick = () => {
@@ -166,7 +166,7 @@ function initializeApp(user) {
     }
 }
 
-// Configuration des onglets
+
 function setupTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -184,9 +184,9 @@ function setupTabs() {
     });
 }
 
-// Configuration des event listeners
+
 function setupEventListeners() {
-    // Recherche d'amis locale (désactivée)
+    
     const friendSearchInput = document.getElementById('friend-search');
     if (friendSearchInput) {
         friendSearchInput.addEventListener('input+', (e) => {
@@ -194,7 +194,7 @@ function setupEventListeners() {
         });
     }
     
-    // Recherche d'utilisateurs
+    
     document.getElementById('search-users-btn').addEventListener('click', searchUsers);
     document.getElementById('user-search').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchUsers();
@@ -588,12 +588,12 @@ function initializeSocket() {
         }
     });
     
-    // Appel terminé
+    
     socket.on('call_ended', () => {
         endCall();
     });
 
-    // Typing indicators
+    
     socket.on('user_typing', (data) => {
         if (currentConversation === data.conversationId && data.username !== appCurrentUser.username) {
             const typingIndicator = document.getElementById('typing-indicator');
@@ -771,7 +771,7 @@ function displayFriendRequests() {
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                 </button>
                 <button class="btn-icon btn-reject" onclick="rejectFriendRequest(${request.id})">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 17.59 13.41 12z"/></svg>
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                 </button>
             </div>
         </div>
@@ -1157,18 +1157,18 @@ function openConversation(conversationId, name, type) {
         }
     }
     
-    // Rejoindre la conversation via Socket.io
+    
     socket.emit('join_conversation', {
         conversationId,
         userId: appCurrentUser.id,
         username: appCurrentUser.username
     });
     
-    // Charger les messages
+    
     loadMessages(conversationId);
 }
 
-// Charger les messages
+
 async function loadMessages(conversationId) {
     const messagesContainer = document.getElementById('chat-messages');
     messagesContainer.innerHTML = '<p style="text-align: center; color: #999;">Chargement des messages...</p>';

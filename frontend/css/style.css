@@ -19,6 +19,15 @@
     padding: 0;
 }
 
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
 ::selection {
     background-color: var(--accent-color);
     color: white;
@@ -59,6 +68,52 @@ html {
     width: 100%;
     max-width: 480px;
     text-align: center;
+}
+
+.landing {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.landing-copy {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: -0.5rem;
+}
+
+.landing-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.landing-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.landing-actions .btn-primary {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+}
+
+.landing-actions .btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.landing-actions .btn-secondary {
+    background-color: transparent;
+    color: var(--text-normal);
+    border: 1px solid var(--border-color);
+}
+
+.landing-actions .btn-secondary:hover {
+    border-color: var(--accent-color);
+    color: white;
 }
 
 .auth-box h1 img {
@@ -341,9 +396,34 @@ html {
 
 .user-info {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
+}
+
+.user-info > div {
+    min-width: 0;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+.actions .btn-accept,
+.actions .btn-reject {
+    padding: 8px 14px;
+    border-radius: 18px;
+}
+
+.actions .btn-accept svg,
+.actions .btn-reject svg {
+    width: 14px;
+    height: 14px;
 }
 
 .list-item .action-btn {
@@ -378,6 +458,9 @@ html {
 .status {
     font-size: 12px;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .badge {
@@ -692,22 +775,22 @@ video {
     justify-content: center;
 }
 
-.btn-end-call, .btn-reject {
-    background-color: var(--danger-color);
+.btn-end-call,
+.btn-reject,
+.btn-accept {
     color: white;
     border: none;
     padding: 10px 20px;
     border-radius: 24px;
-    cursor: pointer;
+}
+
+.btn-end-call,
+.btn-reject {
+    background-color: var(--danger-color);
 }
 
 .btn-accept {
     background-color: var(--success-color);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 24px;
-    cursor: pointer;
 }
 
 .empty-state {
@@ -874,26 +957,17 @@ video {
 }
 
 /* Group Management Icons */
-.btn-trash {
-    color: var(--text-muted);
-    transition: color 0.2s;
-    padding: 0;
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-trash:hover {
-    color: var(--danger-color);
-}
-
+.btn-trash,
 .btn-close {
     color: var(--text-muted);
     transition: color 0.2s;
     padding: 0;
     background: none;
     border: none;
-    cursor: pointer;
+}
+
+.btn-trash:hover {
+    color: var(--danger-color);
 }
 
 .btn-close:hover {

@@ -8,7 +8,6 @@ const Message = require('../models/Message');
 
 const router = express.Router();
 
-// Configuration Multer pour l'upload d'images de groupe
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = path.join(__dirname, '../uploads');
@@ -25,7 +24,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  limits: { fileSize: 5 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png|gif|webp/;
     const mimetype = filetypes.test(file.mimetype);
@@ -37,7 +36,6 @@ const upload = multer({
   }
 });
 
-// Wrapper pour gérer les erreurs Multer
 const uploadGroupAvatar = (req, res, next) => {
   upload.single('avatar')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
@@ -49,7 +47,6 @@ const uploadGroupAvatar = (req, res, next) => {
   });
 };
 
-// Middleware d'authentification (Session ou Token)
 const requireAuth = (req, res, next) => {
   if (!req.session) {
     console.error('❌ req.session est undefined !');
@@ -76,7 +73,6 @@ const requireAuth = (req, res, next) => {
   return res.status(401).json({ error: 'Non authentifié' });
 };
 
-// Création d'un groupe
 router.post('/create', requireAuth, async (req, res) => {
   try {
     const { name, memberIds } = req.body;
@@ -110,7 +106,7 @@ router.post('/create', requireAuth, async (req, res) => {
       }
     });
     
-    // Message système de création
+    
     try {
       const systemMsg = await Message.create({
         conversationId: `group_${group.id}`,
@@ -134,7 +130,6 @@ router.post('/create', requireAuth, async (req, res) => {
   }
 });
 
-// Liste des groupes de l'utilisateur
 router.get('/list', requireAuth, async (req, res) => {
   try {
     const groups = await prisma.group.findMany({
@@ -166,7 +161,6 @@ router.get('/list', requireAuth, async (req, res) => {
   }
 });
 
-// Ajout d'un membre au groupe
 router.post('/:groupId/members', requireAuth, async (req, res) => {
   try {
     const groupId = parseInt(req.params.groupId);
@@ -210,7 +204,6 @@ router.post('/:groupId/members', requireAuth, async (req, res) => {
       }
     });
     
-    // Message système d'ajout
     try {
       const addedUser = await prisma.user.findUnique({ where: { id: userId } });
       const systemMsg = await Message.create({
@@ -235,7 +228,6 @@ router.post('/:groupId/members', requireAuth, async (req, res) => {
   }
 });
 
-// Suppression d'un membre (Admin uniquement)
 router.delete('/:groupId/members/:userId', requireAuth, async (req, res) => {
   try {
     const groupId = parseInt(req.params.groupId);
@@ -265,7 +257,6 @@ router.delete('/:groupId/members/:userId', requireAuth, async (req, res) => {
       }
     });
 
-    // Message système de suppression
     try {
       const kickedUser = await prisma.user.findUnique({ where: { id: targetUserId } });
       const systemMsg = await Message.create({
@@ -290,7 +281,6 @@ router.delete('/:groupId/members/:userId', requireAuth, async (req, res) => {
   }
 });
 
-// Quitter un groupe
 router.delete('/:groupId/leave', requireAuth, async (req, res) => {
   try {
     const groupId = parseInt(req.params.groupId);
@@ -317,9 +307,7 @@ router.delete('/:groupId/leave', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Groupe introuvable' });
     }
 
-    // Gestion du départ du créateur
     if (group.creatorId === userId) {
-      // Si dernier membre, suppression du groupe
       if (group.members.length === 1) {
         if (group.avatar && group.avatar.startsWith('/uploads/')) {
           const filename = path.basename(group.avatar);
@@ -339,7 +327,6 @@ router.delete('/:groupId/leave', requireAuth, async (req, res) => {
         return res.json({ message: 'Groupe supprimé car vous étiez le dernier membre' });
       }
 
-      // Sinon, transfert de propriété requis
       if (!newCreatorId) {
         return res.status(400).json({ 
           error: 'TRANSFER_REQUIRED', 
@@ -366,7 +353,7 @@ router.delete('/:groupId/leave', requireAuth, async (req, res) => {
       }
     });
     
-    // Message système de départ
+    
     try {
       const systemMsg = await Message.create({
         conversationId: `group_${groupId}`,
@@ -390,7 +377,6 @@ router.delete('/:groupId/leave', requireAuth, async (req, res) => {
   }
 });
 
-// Upload d'avatar de groupe
 router.post('/:groupId/avatar', requireAuth, uploadGroupAvatar, async (req, res) => {
   try {
     const groupId = parseInt(req.params.groupId);
@@ -419,7 +405,6 @@ router.post('/:groupId/avatar', requireAuth, uploadGroupAvatar, async (req, res)
       return res.status(403).json({ error: 'Seul le créateur du groupe peut changer l\'image' });
     }
 
-    // Suppression de l'ancien avatar
     if (group.avatar && group.avatar.startsWith('/uploads/')) {
       const filename = path.basename(group.avatar);
       const oldAvatarPath = path.join(__dirname, '../uploads', filename);

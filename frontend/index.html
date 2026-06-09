@@ -16,10 +16,17 @@
 <body>
     <div id="auth-container">
         <div class="auth-box">
-            <h1><img src="assets/logo.png" alt="Ch4to Logo" onerror="this.style.display='none'"> </h1>
-            <p class="subtitle">Chat temps réel avec appels vidéo</p>
-            
-            <div id="login-form" class="form-container">
+            <div id="landing" class="landing">
+                <h1><img src="assets/logo.png" alt="Ch4to Logo" onerror="this.style.display='none'"> </h1>
+                <p class="subtitle">Chat temps réel avec appels vidéo</p>
+                <p class="landing-copy">Discutez, partagez des fichiers et lancez des appels en un clic.</p>
+                <div class="landing-actions">
+                    <button id="landing-login" class="btn-primary">Se connecter</button>
+                    <button id="landing-register" class="btn-secondary">S'inscrire</button>
+                </div>
+            </div>
+
+            <div id="login-form" class="form-container" style="display: none;">
                 <h2>Connexion</h2>
                 <form id="loginForm">
                     <input type="text" id="login-username" placeholder="Nom d'utilisateur" required>
@@ -28,6 +35,9 @@
                 </form>
                 <p class="toggle-form">
                     Pas de compte ? <a href="#" id="show-register">S'inscrire</a>
+                </p>
+                <p class="toggle-form">
+                    <a href="landing.html">← Retour à la page d'accueil</a>
                 </p>
             </div>
 
@@ -41,6 +51,9 @@
                 </form>
                 <p class="toggle-form">
                     Déjà un compte ? <a href="#" id="show-login">Se connecter</a>
+                </p>
+                <p class="toggle-form">
+                    <a href="landing.html">← Retour à la page d'accueil</a>
                 </p>
             </div>
 

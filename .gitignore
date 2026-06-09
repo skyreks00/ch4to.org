@@ -7,3 +7,5 @@ build/
 .vscode/
 .idea/
 uploads/
+TFE/
+*.bat

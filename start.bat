@@ -16,6 +16,7 @@ if not exist "node_modules\" (
     echo.
 )
 
+
 REM Check if Prisma client is generated
 if not exist "node_modules\.prisma\" (
     echo [INFO] Generating Prisma client...

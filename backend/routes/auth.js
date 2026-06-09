@@ -1,7 +1,4 @@
-/**
- * Routes d'authentification.
- * Gère l'inscription, la connexion, la déconnexion et la gestion du profil (avatar).
- */
+
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -12,7 +9,6 @@ const { prisma } = require('../utils/db');
 
 const router = express.Router();
 
-// Configuration Multer pour l'upload d'avatars
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = path.join(__dirname, '../uploads');
@@ -29,7 +25,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  limits: { fileSize: 5 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
     const filetypes = /jpeg|jpg|png|gif|webp/;
     const mimetype = filetypes.test(file.mimetype);
@@ -41,7 +37,6 @@ const upload = multer({
   }
 });
 
-// Inscription d'un nouvel utilisateur
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
@@ -54,7 +49,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères' });
     }
 
-    // Vérification unicité
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
@@ -78,7 +72,7 @@ router.post('/register', async (req, res) => {
       }
     });
 
-    // Initialisation session et token
+    
     req.session.userId = user.id;
     req.session.username = user.username;
     
@@ -112,7 +106,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Connexion utilisateur
 router.post('/login', async (req, res) => {
   try {
     console.log('🔐 Tentative de connexion:', req.body.username);
@@ -141,7 +134,7 @@ router.post('/login', async (req, res) => {
       data: { lastLogin: new Date() }
     });
 
-    // Initialisation session et token
+    
     req.session.userId = user.id;
     req.session.username = user.username;
     
@@ -175,7 +168,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Déconnexion
 router.post('/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -185,7 +177,6 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// Vérification de l'état de connexion (Session ou Token)
 router.get('/check', async (req, res) => {
   let userId = req.session.userId;
 
@@ -223,7 +214,6 @@ router.get('/check', async (req, res) => {
   res.json({ authenticated: false });
 });
 
-// Mise à jour de l'avatar (URL)
 router.post('/avatar', async (req, res) => {
   try {
     let userId = req.session.userId;
@@ -256,7 +246,6 @@ router.post('/avatar', async (req, res) => {
   }
 });
 
-// Wrapper pour gérer les erreurs Multer
 const uploadAvatar = (req, res, next) => {
   upload.single('avatar')(req, res, (err) => {
     if (err instanceof multer.MulterError) {
@@ -268,7 +257,6 @@ const uploadAvatar = (req, res, next) => {
   });
 };
 
-// Upload d'avatar (Fichier)
 router.post('/avatar/upload', uploadAvatar, async (req, res) => {
   try {
     let userId = req.session.userId;
@@ -293,7 +281,6 @@ router.post('/avatar/upload', uploadAvatar, async (req, res) => {
       return res.status(400).json({ error: 'Aucun fichier envoyé' });
     }
 
-    // Suppression de l'ancien avatar si existant
     try {
       const currentUser = await prisma.user.findUnique({
         where: { id: userId },

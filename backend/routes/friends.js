@@ -5,7 +5,6 @@ const Message = require('../models/Message');
 
 const router = express.Router();
 
-// Middleware d'authentification (Session ou Token)
 const requireAuth = (req, res, next) => {
   if (req.session.userId) {
     return next();
@@ -27,7 +26,6 @@ const requireAuth = (req, res, next) => {
   return res.status(401).json({ error: 'Non authentifié' });
 };
 
-// Recherche d'utilisateurs
 router.get('/search', requireAuth, async (req, res) => {
   try {
     const { query } = req.query;
@@ -64,7 +62,6 @@ router.get('/search', requireAuth, async (req, res) => {
   }
 });
 
-// Envoi d'une demande d'ami
 router.post('/request', requireAuth, async (req, res) => {
   try {
     const { receiverId } = req.body;
@@ -115,7 +112,6 @@ router.post('/request', requireAuth, async (req, res) => {
   }
 });
 
-// Liste des demandes en attente
 router.get('/requests', requireAuth, async (req, res) => {
   try {
     const requests = await prisma.friendship.findMany({
@@ -142,7 +138,6 @@ router.get('/requests', requireAuth, async (req, res) => {
   }
 });
 
-// Accepter une demande
 router.post('/accept/:id', requireAuth, async (req, res) => {
   try {
     const friendshipId = parseInt(req.params.id);
@@ -160,7 +155,6 @@ router.post('/accept/:id', requireAuth, async (req, res) => {
       data: { status: 'accepted' }
     });
 
-    // Créer un message système pour la nouvelle conversation
     const conversationId = `private_${Math.min(friendship.senderId, friendship.receiverId)}_${Math.max(friendship.senderId, friendship.receiverId)}`;
     
     try {
@@ -195,7 +189,6 @@ router.post('/accept/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Refuser ou supprimer une demande
 router.delete('/request/:id', requireAuth, async (req, res) => {
   try {
     const friendshipId = parseInt(req.params.id);
@@ -224,7 +217,6 @@ router.delete('/request/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Liste des amis
 router.get('/list', requireAuth, async (req, res) => {
   try {
     const friendships = await prisma.friendship.findMany({
@@ -262,7 +254,6 @@ router.get('/list', requireAuth, async (req, res) => {
   }
 });
 
-// Supprimer un ami
 router.delete('/:friendId', requireAuth, async (req, res) => {
   try {
     const friendId = parseInt(req.params.friendId);

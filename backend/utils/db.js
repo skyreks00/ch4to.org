@@ -1,14 +1,9 @@
-/**
- * Gestionnaire des connexions aux bases de données.
- * Centralise l'accès à MySQL (via Prisma) et MongoDB (via Mongoose).
- */
+
 const { PrismaClient } = require('@prisma/client');
 const mongoose = require('mongoose');
 
-// Instance Prisma pour MySQL
 const prisma = new PrismaClient();
 
-// Établit la connexion à MongoDB
 const connectMongoDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
@@ -23,7 +18,6 @@ const connectMongoDB = async () => {
   }
 };
 
-// Ferme proprement toutes les connexions
 const disconnectDatabases = async () => {
   await prisma.$disconnect();
   await mongoose.connection.close();

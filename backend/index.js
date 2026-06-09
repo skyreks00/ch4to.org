@@ -1,7 +1,4 @@
-/**
- * Point d'entrée principal du serveur Backend.
- * Configure Express, Socket.io, la base de données et les routes API.
- */
+
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -21,7 +18,6 @@ const Message = require('./models/Message');
 const app = express();
 const server = http.createServer(app);
 
-// Configuration Socket.io avec support CORS
 const io = new Server(server, {
   cors: {
     origin: true,
@@ -32,7 +28,6 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3000;
 
-// Middleware CORS pour accepter les requêtes cross-origin
 app.use(cors({
   origin: true,
   credentials: true
@@ -40,13 +35,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Gestion des sessions utilisateurs (cookies sécurisés pour HTTPS)
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // 24h
+    maxAge: 1000 * 60 * 60 * 24,
     httpOnly: true,
     secure: true,
     sameSite: 'none'
@@ -55,23 +49,19 @@ const sessionMiddleware = session({
 
 app.use(sessionMiddleware);
 
-// Rend l'instance Socket.io accessible dans les routes
 app.use((req, res, next) => {
   req.io = io;
   next();
 });
 
-// Log des requêtes API pour le débogage
 app.use('/api', (req, res, next) => {
   console.log(`📨 ${req.method} ${req.path} - Session: ${req.session?.userId || 'none'}`);
   next();
 });
 
-// Servir les fichiers statiques (Frontend et Uploads)
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Configuration du stockage des fichiers uploadés
 const messageStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = path.join(__dirname, 'uploads/messages');
@@ -88,10 +78,9 @@ const messageStorage = multer.diskStorage({
 
 const messageUpload = multer({ 
   storage: messageStorage,
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-// Endpoint pour l'upload de fichiers dans le chat
 app.post('/api/messages/upload', messageUpload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Aucun fichier' });
@@ -105,35 +94,29 @@ app.post('/api/messages/upload', messageUpload.single('file'), (req, res) => {
   });
 });
 
-// Routes API principales
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/groups', groupsRoutes);
 
-// Récupère l'historique des messages et enrichit avec les infos utilisateurs à jour
 app.get('/api/messages/:conversationId', async (req, res) => {
   try {
     console.log('📥 Requête de messages pour:', req.params.conversationId);
     
     const { conversationId } = req.params;
     
-    // Récupération depuis MongoDB
     const messages = await Message.find({ conversationId })
       .sort({ timestamp: -1 })
       .limit(100)
       .lean();
     
-    // Remettre dans l'ordre chronologique
     messages.reverse();
     
-    // Récupération des infos utilisateurs depuis MySQL (Prisma)
     const senderIds = [...new Set(messages.map(m => m.senderId))];
     const users = await prisma.user.findMany({
       where: { id: { in: senderIds } },
       select: { id: true, username: true, avatar: true }
     });
     
-    // Création d'une map pour enrichir rapidement les messages
     const userMap = {};
     users.forEach(user => { userMap[user.id] = user; });
     
@@ -153,7 +136,6 @@ app.get('/api/messages/:conversationId', async (req, res) => {
   }
 });
 
-// Route Fallback : Sert l'application Frontend pour toute autre URL
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Route non trouvée' });
@@ -161,12 +143,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// Partage de la session Express avec Socket.io
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
-// Gestion du temps réel (Socket.io)
 const activeUsers = new Map();
 const userSockets = new Map();
 const callPeers = new Map();
@@ -174,7 +154,6 @@ const callPeers = new Map();
 io.on('connection', (socket) => {
   console.log(`✅ Utilisateur connecté: ${socket.id}`);
   
-  // Gestion du statut en ligne et reconnexion aux salles
   socket.on('user_online', async (data) => {
     const { userId, username } = data;
     activeUsers.set(socket.id, { userId, username });
@@ -184,7 +163,6 @@ io.on('connection', (socket) => {
     
     io.emit('user_status_change', { userId, status: 'online' });
 
-    // Reconnexion automatique aux salles (Amis et Groupes)
     try {
       const friendships = await prisma.friendship.findMany({
         where: {
@@ -213,7 +191,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Vérification des utilisateurs en ligne
   socket.on('check_online_status', (userIds, callback) => {
     if (Array.isArray(userIds) && typeof callback === 'function') {
       const onlineIds = userIds.filter(id => userSockets.has(parseInt(id)));
@@ -221,7 +198,6 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Gestion des salles de conversation
   socket.on('join_conversation', (data) => {
     socket.join(data.conversationId);
     console.log(`💬 Socket ${socket.id} a rejoint: ${data.conversationId}`);
@@ -231,7 +207,6 @@ io.on('connection', (socket) => {
     socket.leave(data.conversationId);
   });
   
-  // Réception et diffusion d'un message
   socket.on('send_message', async (data) => {
     try {
       const { conversationId, conversationType, username, message, senderId, avatar, type, fileUrl } = data;
@@ -249,7 +224,6 @@ io.on('connection', (socket) => {
         readBy: [senderId]
       };
       
-      // Sauvegarde MongoDB et diffusion
       try {
         const newMessage = await Message.create(messageData);
         
@@ -263,7 +237,6 @@ io.on('connection', (socket) => {
 
       } catch (dbError) {
         console.error('Erreur MongoDB:', dbError);
-        // Mode dégradé si BDD HS
         io.to(conversationId).emit('receive_message', {
           id: Date.now().toString(),
           ...messageData
@@ -274,7 +247,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Indicateurs de frappe
   socket.on('typing', (data) => {
     socket.to(data.conversationId).emit('user_typing', data);
   });
@@ -283,7 +255,6 @@ io.on('connection', (socket) => {
     socket.to(data.conversationId).emit('user_stop_typing', data);
   });
 
-  // Gestion des accusés de lecture
   socket.on('mark_read', async (data) => {
     const { conversationId, userId } = data;
     try {
@@ -297,7 +268,6 @@ io.on('connection', (socket) => {
     }
   });
   
-  // WebRTC - Signalisation pour les appels
   socket.on('call_offer', (data) => {
     const { to, offer, fromUsername } = data;
     console.log(`📞 Appel de ${fromUsername} vers userId ${to}`);
@@ -329,7 +299,6 @@ io.on('connection', (socket) => {
     callPeers.delete(data.to);
   });
   
-  // Gestion de la déconnexion
   socket.on('disconnect', async () => {
     const userInfo = activeUsers.get(socket.id);
     
@@ -351,10 +320,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Tâche planifiée : Suppression des fichiers > 3 jours
 const cleanupOldFiles = () => {
   const uploadDir = path.join(__dirname, 'uploads/messages');
-  const MAX_AGE = 3 * 24 * 60 * 60 * 1000; // 3 jours
+  const MAX_AGE = 3 * 24 * 60 * 60 * 1000; 
   
   if (!fs.existsSync(uploadDir)) return;
 
@@ -386,17 +354,14 @@ const cleanupOldFiles = () => {
   });
 };
 
-// Initialisation et démarrage du serveur
 const startServer = async () => {
   try {
-    // Connexion aux bases de données
     try {
       await connectMongoDB();
     } catch (mongoError) {
       console.warn('⚠️ MongoDB non disponible - Persistance désactivée');
     }
     
-    // Lancement du nettoyage automatique (immédiat + toutes les 24h)
     cleanupOldFiles();
     setInterval(cleanupOldFiles, 24 * 60 * 60 * 1000);
     
@@ -410,7 +375,6 @@ const startServer = async () => {
   }
 };
 
-// Gestion de l'arrêt propre (SIGINT/SIGTERM)
 process.on('SIGINT', async () => {
   console.log('\n🛑 Arrêt du serveur...');
   await disconnectDatabases();
