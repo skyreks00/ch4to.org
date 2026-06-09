@@ -123,6 +123,13 @@ router.post('/create', requireAuth, async (req, res) => {
       console.error('Erreur message système groupe:', msgError);
     }
 
+    if (req.io) {
+      const allMemberIds = [req.session.userId, ...(memberIds || []).map(id => parseInt(id))];
+      allMemberIds.forEach(mId => {
+        req.io.to(mId.toString()).emit('group_created', group);
+      });
+    }
+
     res.status(201).json(group);
   } catch (error) {
     console.error('Erreur création groupe:', error);
@@ -221,6 +228,29 @@ router.post('/:groupId/members', requireAuth, async (req, res) => {
       console.error('Erreur message système ajout membre:', msgError);
     }
 
+    try {
+      const fullGroup = await prisma.group.findUnique({
+        where: { id: groupId },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true
+                }
+              }
+            }
+          }
+        }
+      });
+      if (req.io && fullGroup) {
+        req.io.to(userId.toString()).emit('group_created', fullGroup);
+      }
+    } catch (grpError) {
+      console.error('Erreur notification groupe créé:', grpError);
+    }
+
     res.status(201).json(newMember);
   } catch (error) {
     console.error('Erreur ajout membre:', error);
@@ -272,6 +302,10 @@ router.delete('/:groupId/members/:userId', requireAuth, async (req, res) => {
       }
     } catch (msgError) {
       console.error('Erreur message système suppression membre:', msgError);
+    }
+
+    if (req.io) {
+      req.io.to(targetUserId.toString()).emit('group_removed', { groupId });
     }
 
     res.json({ message: 'Membre supprimé du groupe' });

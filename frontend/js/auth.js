@@ -211,6 +211,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
+    // Programmatic test login for unique jury members
+    async function performQuickLogin() {
+        try {
+            console.log('⚡ Connexion rapide en cours...');
+            const nameParam = new URLSearchParams(window.location.search).get('name') || '';
+            const response = await fetch('/api/tfe/jury-login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ name: nameParam }),
+                credentials: 'include'
+            });
+            
+            const data = await response.json();
+            if (response.ok && data.token) {
+                localStorage.setItem('authToken', data.token);
+                currentUser = data.user;
+                showChatInterface();
+            } else {
+                showError(data.error || 'Erreur lors de la connexion rapide');
+            }
+        } catch (error) {
+            console.error('Erreur connexion rapide:', error);
+            showError('Impossible de se connecter au serveur');
+        }
+    }
+
+    const quickLoginParam = new URLSearchParams(window.location.search).get('quickLogin');
+    if (quickLoginParam === 'true') {
+        performQuickLogin();
+        return;
+    }
+
+    const btnQuickLogin = document.getElementById('btn-quick-login');
+    if (btnQuickLogin) {
+        btnQuickLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            performQuickLogin();
+        });
+    }
+
     if (requestedView === 'login' || requestedView === 'register') {
         showAuthForm(requestedView);
     }

@@ -14,6 +14,7 @@ const authRoutes = require('./routes/auth');
 const friendsRoutes = require('./routes/friends');
 const groupsRoutes = require('./routes/groups');
 const Message = require('./models/Message');
+const tfeRoutes = require('./routes/tfe.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -97,6 +98,7 @@ app.post('/api/messages/upload', messageUpload.single('file'), (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/groups', groupsRoutes);
+app.use('/', tfeRoutes);
 
 app.get('/api/messages/:conversationId', async (req, res) => {
   try {
@@ -151,6 +153,32 @@ const activeUsers = new Map();
 const userSockets = new Map();
 const callPeers = new Map();
 
+// TFE Presentation global volatile state
+let tfeState = {
+  currentSlide: 1,
+  votes1: { A: 0, B: 0, C: 0 },
+  votedUsers1: new Set(),
+  votes2: { A: 0, B: 0, C: 0 },
+  votedUsers2: new Set(),
+  juryCount: 0,
+  jurySockets: new Set(),
+  juryUsernames: new Set()
+};
+
+app.set('tfeState', tfeState);
+app.set('activeUsers', activeUsers);
+
+function escapeHTML(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
 io.on('connection', (socket) => {
   console.log(`✅ Utilisateur connecté: ${socket.id}`);
   
@@ -162,6 +190,7 @@ io.on('connection', (socket) => {
     console.log(`👤 ${username} (${userId}) est en ligne`);
     
     io.emit('user_status_change', { userId, status: 'online' });
+    io.emit('update_online_users', Array.from(activeUsers.values()).map(u => u.username));
 
     try {
       const friendships = await prisma.friendship.findMany({
@@ -298,8 +327,135 @@ io.on('connection', (socket) => {
     callPeers.delete(socket.id);
     callPeers.delete(data.to);
   });
-  
+
+  // --- TFE Presentation Events ---
+  socket.on('join_tfe_room', (data) => {
+    socket.join('tfe_presentation');
+    const role = (data && data.role) || 'jury';
+    
+    if (role === 'jury' && !tfeState.jurySockets.has(socket.id)) {
+      tfeState.jurySockets.add(socket.id);
+      tfeState.juryCount++;
+      io.to('tfe_presentation').emit('update_jury_count', tfeState.juryCount);
+      console.log(`👨‍🏫 TFE: Nouveau juré connecté. Total : ${tfeState.juryCount}`);
+    }
+    
+    socket.emit('tfe_state_init', {
+      currentSlide: tfeState.currentSlide,
+      votes1: tfeState.votes1,
+      votes2: tfeState.votes2,
+      juryCount: tfeState.juryCount
+    });
+    socket.emit('update_online_users', Array.from(activeUsers.values()).map(u => u.username));
+  });
+
+  socket.on('send_reaction', (data) => {
+    io.to('tfe_presentation').emit('broadcast_heart', data);
+  });
+
+  socket.on('jury_heart', () => {
+    io.to('tfe_presentation').emit('broadcast_heart', { type: 'heart' });
+  });
+
+  socket.on('submit_question', (data) => {
+    const text = typeof data === 'object' ? data.text : data;
+    const senderName = (data && data.senderName) ? escapeHTML(data.senderName) : 'Juré Anonyme';
+    const sanitizedMessage = escapeHTML(text);
+    io.to('tfe_presentation').emit('broadcast_message', {
+      id: Date.now() + Math.random().toString(36).substr(2, 5),
+      senderName: senderName,
+      text: sanitizedMessage,
+      timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    });
+  });
+
+  socket.on('submit_bcrypt_hash', (data) => {
+    if (data && data.salt && data.hash) {
+      io.to('tfe_presentation').emit('broadcast_bcrypt_hash', {
+        salt: escapeHTML(data.salt),
+        hash: escapeHTML(data.hash),
+        senderName: data.senderName ? escapeHTML(data.senderName) : 'Juré'
+      });
+    }
+  });
+
+  socket.on('jury_message', (message) => {
+    const sanitizedMessage = escapeHTML(message);
+    io.to('tfe_presentation').emit('broadcast_message', {
+      id: Date.now() + Math.random().toString(36).substr(2, 5),
+      senderName: 'Juré Anonyme',
+      text: sanitizedMessage,
+      timestamp: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    });
+  });
+
+  socket.on('submit_vote', (data) => {
+    const { quizId, option } = data;
+    const votes = quizId == 1 ? tfeState.votes1 : tfeState.votes2;
+    const votedUsers = quizId == 1 ? tfeState.votedUsers1 : tfeState.votedUsers2;
+    
+    if (votes && votedUsers && !votedUsers.has(socket.id)) {
+      if (votes[option] !== undefined) {
+        votes[option]++;
+        votedUsers.add(socket.id);
+        io.to('tfe_presentation').emit('quiz_results', {
+          quizId,
+          votes
+        });
+        console.log(`🗳️ TFE: Vote enregistré sur Quiz ${quizId} pour option ${option}`);
+      }
+    }
+  });
+
+  socket.on('change_slide', (slideNumber) => {
+    tfeState.currentSlide = slideNumber;
+    io.to('tfe_presentation').emit('slide_changed', slideNumber);
+  });
+
+  socket.on('reset_quiz', (quizId) => {
+    if (quizId == 1) {
+      tfeState.votes1 = { A: 0, B: 0, C: 0 };
+      tfeState.votedUsers1.clear();
+      io.to('tfe_presentation').emit('quiz_reset', 1);
+    } else if (quizId == 2) {
+      tfeState.votes2 = { A: 0, B: 0, C: 0 };
+      tfeState.votedUsers2.clear();
+      io.to('tfe_presentation').emit('quiz_reset', 2);
+    } else {
+      tfeState.votes1 = { A: 0, B: 0, C: 0 };
+      tfeState.votedUsers1.clear();
+      tfeState.votes2 = { A: 0, B: 0, C: 0 };
+      tfeState.votedUsers2.clear();
+      io.to('tfe_presentation').emit('quiz_reset', 'all');
+    }
+    console.log(`🗳️ TFE: Quiz ${quizId || 'all'} réinitialisé.`);
+  });
+
+  socket.on('reset_tfe_session', () => {
+    tfeState.votes1 = { A: 0, B: 0, C: 0 };
+    tfeState.votedUsers1.clear();
+    tfeState.votes2 = { A: 0, B: 0, C: 0 };
+    tfeState.votedUsers2.clear();
+    tfeState.currentSlide = 1;
+    tfeState.jurySockets.clear();
+    tfeState.juryCount = 0;
+    if (tfeState.juryUsernames) {
+      tfeState.juryUsernames.clear();
+    }
+    
+    io.to('tfe_presentation').emit('session_reset');
+    console.log(`🎮 TFE: Session réinitialisée (Reset Kahoot).`);
+  });
+  // --------------------------------
+
   socket.on('disconnect', async () => {
+    if (tfeState.jurySockets.has(socket.id)) {
+      tfeState.jurySockets.delete(socket.id);
+      tfeState.juryCount = Math.max(0, tfeState.juryCount - 1);
+      io.to('tfe_presentation').emit('update_jury_count', tfeState.juryCount);
+      console.log(`❌ TFE: Un juré s'est déconnecté. Total : ${tfeState.juryCount}`);
+    }
+
     const userInfo = activeUsers.get(socket.id);
     
     if (userInfo) {
@@ -309,6 +465,7 @@ io.on('connection', (socket) => {
       console.log(`❌ ${username} déconnecté`);
       
       io.emit('user_status_change', { userId, status: 'offline' });
+      io.emit('update_online_users', Array.from(activeUsers.values()).map(u => u.username));
     }
     
     const callPeer = callPeers.get(socket.id);
@@ -354,6 +511,44 @@ const cleanupOldFiles = () => {
   });
 };
 
+const ensureTestUser = async () => {
+  try {
+    const existing = await prisma.user.findUnique({
+      where: { username: 'JuryTest' }
+    });
+    if (!existing) {
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      await prisma.user.create({
+        data: {
+          username: 'JuryTest',
+          email: 'jury@ch4to.org',
+          password: hashedPassword
+        }
+      });
+      console.log('👤 Compte de test "JuryTest" créé avec succès');
+    }
+
+    const presenterExisting = await prisma.user.findUnique({
+      where: { username: 'Wilmus' }
+    });
+    if (!presenterExisting) {
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      await prisma.user.create({
+        data: {
+          username: 'Wilmus',
+          email: 'wilmus@ch4to.org',
+          password: hashedPassword
+        }
+      });
+      console.log('👤 Compte Présentateur "Wilmus" créé avec succès');
+    }
+  } catch (err) {
+    console.error('⚠️ Impossible de créer les comptes de test:', err.message);
+  }
+};
+
 const startServer = async () => {
   try {
     try {
@@ -361,6 +556,9 @@ const startServer = async () => {
     } catch (mongoError) {
       console.warn('⚠️ MongoDB non disponible - Persistance désactivée');
     }
+    
+    // Assure key accounts exist
+    await ensureTestUser();
     
     cleanupOldFiles();
     setInterval(cleanupOldFiles, 24 * 60 * 60 * 1000);

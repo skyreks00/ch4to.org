@@ -219,6 +219,11 @@ function setupEventListeners() {
     document.getElementById('create-group-btn').addEventListener('click', showCreateGroupModal);
     document.getElementById('logout-btn').addEventListener('click', logout);
     
+    const exportStatsBtn = document.getElementById('export-stats-btn');
+    if (exportStatsBtn) {
+        exportStatsBtn.addEventListener('click', exportStatsCSV);
+    }
+    
     document.getElementById('send-btn').addEventListener('click', sendMessage);
     document.getElementById('message-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
@@ -609,6 +614,31 @@ function initializeSocket() {
     socket.on('user_stop_typing', (data) => {
         if (currentConversation === data.conversationId) {
             document.getElementById('typing-indicator').style.display = 'none';
+        }
+    });
+
+    socket.on('group_created', async (newGroup) => {
+        console.log('👥 Nouveau groupe reçu en temps réel:', newGroup);
+        await loadGroups();
+        if (socket) {
+            socket.emit('join_conversation', { conversationId: 'group_' + newGroup.id });
+        }
+        if (newGroup.creatorId !== appCurrentUser.id) {
+            showToast(`Vous avez été ajouté au groupe "${newGroup.name}" !`, 'success');
+        }
+    });
+
+    socket.on('group_removed', async (data) => {
+        console.log('❌ Retiré du groupe en temps réel:', data.groupId);
+        await loadGroups();
+        if (currentConversation === `group_${data.groupId}`) {
+            currentConversation = null;
+            document.getElementById('chat-area').style.display = 'none';
+            document.getElementById('welcome-screen').style.display = 'flex';
+            if (typeof resetChatHeader === 'function') {
+                resetChatHeader();
+            }
+            showToast('Vous avez été retiré du groupe.', 'info');
         }
     });
 }
@@ -1327,6 +1357,40 @@ async function logout() {
     } catch (error) {
         console.error('Erreur déconnexion:', error);
         location.reload();
+    }
+}
+
+async function exportStatsCSV() {
+    try {
+        const headers = {};
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const response = await fetch('/api/auth/stats/csv', {
+            credentials: 'include',
+            headers: headers
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erreur lors du téléchargement : ${response.statusText}`);
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'ch4to_statistiques.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showToast('Statistiques exportées avec succès !', 'success');
+    } catch (error) {
+        console.error('Erreur exportation stats CSV:', error);
+        showToast('Erreur lors de l\'exportation des statistiques', 'error');
     }
 }
 

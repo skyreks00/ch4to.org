@@ -272,6 +272,29 @@ html {
     cursor: pointer;
 }
 
+.btn-export-stats {
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 8px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-export-stats:hover {
+    background-color: #2e8b4e;
+}
+
+.btn-export-stats:active {
+    transform: scale(0.97);
+}
+
 .chat-layout {
     display: flex;
     flex: 1;

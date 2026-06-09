@@ -99,6 +99,22 @@
         justify-content: center;
     }
 
+    .export-stats-text {
+        display: none;
+    }
+
+    .export-stats-icon {
+        display: block !important;
+    }
+
+    .btn-export-stats {
+        padding: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 4px;
+    }
+
     .header-right {
         gap: 0.5rem;
     }

@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Ch4to - Interface Jury TFE</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #08080a;
+            --bg-secondary: #121318;
+            --bg-tertiary: #050507;
+            --text-normal: #f5f5f7;
+            --text-muted: #86868b;
+            --accent-color: #D65BFF;
+            --accent-hover: #b840e0;
+            --danger-color: #ff3b30;
+            --success-color: #34c759;
+            --highlight-color: #00D9FF;
+            --input-bg: #1c1c1e;
+            --border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-tertiary);
+            background-image: radial-gradient(circle at 50% 50%, #15161e 0%, #050507 100%);
+            color: var(--text-normal);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            padding: 1.2rem;
+            position: relative;
+        }
+
+        header {
+            text-align: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .logo span {
+            color: var(--accent-color);
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            background: rgba(214, 91, 255, 0.15);
+            color: var(--accent-color);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(214, 91, 255, 0.2);
+        }
+
+        /* Card panels */
+        .card {
+            background-color: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 1.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 380px;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 8px;
+        }
+
+        /* Onboarding Screen */
+        #section-onboarding {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 1.5rem;
+            flex: 1;
+        }
+
+        .pulse-loader {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: rgba(214, 91, 255, 0.15);
+            border: 2px solid var(--accent-color);
+            margin-bottom: 1rem;
+            animation: pulse 2.2s infinite ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-color);
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            width: 100%;
+        }
+
+        .input-text {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-normal);
+            font-family: inherit;
+            font-size: 1.05rem;
+            transition: border-color 0.2s;
+        }
+
+        .input-text:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .btn-submit {
+            background-color: var(--accent-color);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(214, 91, 255, 0.2);
+            width: 100%;
+        }
+
+        .btn-submit:active {
+            background-color: var(--accent-hover);
+            transform: scale(0.97);
+        }
+
+        /* View sections */
+        .jury-view-section {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* Quiz UI */
+        .quiz-question-lbl {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-normal);
+            margin-bottom: 1.2rem;
+            line-height: 1.4;
+            border-left: 3px solid var(--accent-color);
+            padding-left: 10px;
+        }
+
+        .quiz-controls-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            margin-top: 1.2rem;
+        }
+
+        .btn-vote-circle {
+            flex: 1;
+            aspect-ratio: 1 / 1;
+            border-radius: 50%;
+            border: none;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+            max-width: 90px;
+            min-height: 90px;
+        }
+
+        .btn-vote-a { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); }
+        .btn-vote-b { background: linear-gradient(135deg, #00d2ff 0%, #0066ff 100%); }
+        .btn-vote-c { background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%); }
+
+        .btn-vote-circle:active {
+            transform: scale(0.88);
+        }
+
+        .btn-vote-circle:disabled {
+            opacity: 0.25;
+            transform: none;
+            filter: grayscale(0.6);
+            cursor: not-allowed;
+        }
+
+        .vote-feedback-box {
+            display: none;
+            text-align: center;
+            padding: 1.5rem 1rem;
+            color: var(--success-color);
+            font-weight: 600;
+            font-size: 1.15rem;
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* Q&A / Visit panel styling */
+        textarea {
+            width: 100%;
+            height: 90px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            color: var(--text-normal);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: none;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .char-counter {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-align: right;
+            margin-bottom: 0.8rem;
+        }
+
+        .toast-msg {
+            display: none;
+            color: var(--success-color);
+            font-size: 0.95rem;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .visit-banner {
+            margin-top: 1.5rem;
+            padding: 1rem 1.2rem;
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.08) 0%, rgba(214, 91, 255, 0.08) 100%);
+            border: 1px dashed rgba(214, 91, 255, 0.3);
+            border-radius: 16px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .visit-banner p {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            color: var(--text-normal);
+        }
+
+        .btn-visit {
+            background: linear-gradient(135deg, var(--highlight-color) 0%, var(--accent-color) 100%);
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.95rem;
+            display: inline-block;
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .btn-visit:active {
+            transform: scale(0.97);
+        }
+
+        /* Floating FAB Reaction Button */
+        .btn-heart-fab {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: white;
+            box-shadow: 0 6px 20px rgba(255, 75, 43, 0.4);
+            z-index: 1000;
+            cursor: pointer;
+            animation: pulse-heart 2.5s infinite;
+            transition: transform 0.1s ease;
+        }
+
+        .btn-heart-fab:active {
+            transform: scale(0.85);
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(214, 91, 255, 0.5); }
+            70% { transform: scale(1); box-shadow: 0 0 0 14px rgba(214, 91, 255, 0); }
+            100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(214, 91, 255, 0); }
+        }
+
+        @keyframes pulse-heart {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); box-shadow: 0 8px 25px rgba(255, 75, 43, 0.6); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <header style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 1rem; width: 100%;">
+        <img src="assets/logo.png" alt="Ch4to Logo" style="height: 38px; width: auto; filter: drop-shadow(0 0 10px rgba(214, 91, 255, 0.3));">
+        <div class="subtitle">Jury TFE</div>
+    </header>
+
+    <div class="card" id="main-panel">
+        
+        <!-- SECTION 0: Name Onboarding (Shown if no name registered) -->
+        <div id="section-onboarding">
+            <div class="pulse-loader"><i class="fa-solid fa-user-plus"></i></div>
+            <h3 style="font-weight: 600; color: #fff; margin-bottom: 6px;">Bienvenue sur Ch4to Jury</h3>
+            <p style="font-size: 0.9rem; line-height: 1.4; color: var(--text-muted); margin-bottom: 1rem;">Veuillez entrer votre nom ou pseudonyme pour participer en direct.</p>
+            <div class="form-group">
+                <input type="text" id="input-jury-name" class="input-text" placeholder="Votre nom (ex: Pierre, Dr. Dupont...)" required maxlength="20">
+                <button id="btn-join-presentation" class="btn-submit" style="margin-top: 10px;">Rejoindre la Présentation</button>
+            </div>
+        </div>
+
+        <!-- SECTION 1: Waiting state (Slides 1, 2, 3, 5, 6, 7, 9, 10) -->
+        <div id="section-waiting" class="jury-view-section" style="text-align: center; align-items: center;">
+            <div class="pulse-loader"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            <h3 style="font-weight: 600; color: #fff; margin-bottom: 8px;">Présentation en cours</h3>
+            <p style="font-size: 0.95rem; line-height: 1.4;" id="waiting-section-text">Patientez jusqu'au quiz interactif... La question s'affichera automatiquement ici.</p>
+        </div>
+
+        <!-- SECTION 2: Quiz 1 (Slide 4) -->
+        <div id="section-quiz1" class="jury-view-section" style="text-align: center; align-items: center;">
+            <h2>Quiz 1 : Architecture</h2>
+            <div class="quiz-question-lbl" style="border: none; padding-left: 0; text-align: center; margin-bottom: 1.5rem;">
+                Choisissez votre réponse sur l'écran de présentation :
+            </div>
+            <div id="quiz1-active-controls" class="quiz-controls-row">
+                <button class="btn-vote-circle btn-vote-a" data-quiz="1" data-choice="A">A</button>
+                <button class="btn-vote-circle btn-vote-b" data-quiz="1" data-choice="B">B</button>
+                <button class="btn-vote-circle btn-vote-c" data-quiz="1" data-choice="C">C</button>
+            </div>
+            <div id="quiz1-feedback" class="vote-feedback-box">
+                Vote enregistré avec succès. Merci.
+            </div>
+        </div>
+
+        <!-- SECTION 3: Quiz 2 (Slide 8) -->
+        <div id="section-quiz2" class="jury-view-section" style="text-align: center; align-items: center;">
+            <h2>Quiz 2 : Résolution Réseau</h2>
+            <div class="quiz-question-lbl" style="border: none; padding-left: 0; text-align: center; margin-bottom: 1.5rem;">
+                Choisissez votre réponse sur l'écran de présentation :
+            </div>
+            <div id="quiz2-active-controls" class="quiz-controls-row">
+                <button class="btn-vote-circle btn-vote-a" data-quiz="2" data-choice="A">A</button>
+                <button class="btn-vote-circle btn-vote-b" data-quiz="2" data-choice="B">B</button>
+                <button class="btn-vote-circle btn-vote-c" data-quiz="2" data-choice="C">C</button>
+            </div>
+            <div id="quiz2-feedback" class="vote-feedback-box">
+                Vote enregistré avec succès. Merci.
+            </div>
+        </div>
+
+        <!-- SECTION 4: Démo Ch4to (Slide 11) -->
+        <div id="section-demo" class="jury-view-section" style="text-align: center; align-items: center; justify-content: center; gap: 1.5rem;">
+            <div class="pulse-loader" style="background: rgba(0, 217, 255, 0.15); border-color: var(--highlight-color); color: var(--highlight-color); width: 65px; height: 65px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;"><i class="fa-solid fa-play"></i></div>
+            <h3 style="font-weight: 600; color: #fff; margin-bottom: 6px;">C'est l'heure de la Démo !</h3>
+            <p style="font-size: 0.95rem; line-height: 1.5; color: var(--text-normal); margin-bottom: 1rem;">
+                Testez l'application Ch4to en direct ! Ouvrez et essayez le chat instantanément avec votre compte jury.
+            </p>
+            <a href="" id="btn-visit-ch4to-demo" target="_blank" class="btn-submit" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: bold; background: linear-gradient(135deg, var(--highlight-color) 0%, var(--accent-color) 100%); width: 100%;">
+                Visiter le site maintenant
+            </a>
+        </div>
+
+        <!-- SECTION 5: Q&A (Slide 12) -->
+        <div id="section-qa" class="jury-view-section">
+            <h2>Poser une Question</h2>
+            <div class="form-group">
+                <textarea id="qa-text" placeholder="Saisissez votre question en direct..." maxlength="150"></textarea>
+                <div class="char-counter"><span id="char-count">0</span> / 150</div>
+                <button id="btn-send-qa" class="btn-submit">Envoyer la Question</button>
+                <div id="qa-toast" class="toast-msg">Question transmise en direct !</div>
+            </div>
+        </div>
+
+        <!-- SECTION 6: Merci / Remerciements (Slide 13) -->
+        <div id="section-thanks" class="jury-view-section" style="text-align: center; align-items: center; justify-content: center; gap: 1rem; flex-direction: column;">
+            <img src="assets/logo.png" alt="Ch4to Logo" style="height: 65px; width: auto; filter: drop-shadow(0 0 15px rgba(214, 91, 255, 0.45)); margin-bottom: 0.8rem;">
+            <h3 style="font-weight: 600; color: #fff; margin-bottom: 6px;">Merci pour votre attention !</h3>
+            <p style="font-size: 0.95rem; line-height: 1.4; color: var(--text-muted);">
+                La soutenance est terminée. Merci de votre présence. ❤️
+            </p>
+        </div>
+
+        <!-- SECTION 7: Bcrypt Hashing Playground (Slide 10) -->
+        <div id="section-bcrypt" class="jury-view-section" style="text-align: left; align-items: stretch;">
+            <h3 style="font-weight: 600; color: #fff; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-key" style="color: var(--highlight-color);"></i> Démo Bcrypt en Direct
+            </h3>
+            <p style="font-size: 0.9rem; line-height: 1.4; color: var(--text-muted); margin-bottom: 1.2rem;">
+                Saisissez un mot de passe et cliquez sur Envoyer. Son empreinte Bcrypt s'affichera uniquement sur l'écran géant du présentateur.
+            </p>
+            <div style="margin-bottom: 12px; width: 100%;">
+                <input type="text" id="bcrypt-jury-input" placeholder="Saisir un mot de passe..." class="input-text" style="width: 100%; box-sizing: border-box; padding: 12px; font-size: 0.9rem;" oninput="onJuryBcryptInput(this.value)">
+            </div>
+            <button id="btn-send-bcrypt" class="btn-submit" onclick="submitJuryBcrypt()" style="width: 100%; display: none; font-weight: bold;" disabled>Envoyer le hash à l'écran géant</button>
+        </div>
+    </div>
+
+    <!-- Floating FAB Reaction Button (Only clickable after onboarding) -->
+    <button id="btn-heart" class="btn-heart-fab" style="display: none;">❤️</button>
+
+    <!-- Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentSlide = 1;
+        let onboardingComplete = false;
+
+        // Onboarding Setup
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedName = localStorage.getItem('jury_name');
+            if (storedName) {
+                onboardingComplete = true;
+                document.getElementById('section-onboarding').style.display = 'none';
+                document.getElementById('btn-heart').style.display = 'flex';
+                 // Trigger connection
+                 socket.emit('join_tfe_room', { role: 'jury' });
+            }
+        });
+
+        document.getElementById('btn-join-presentation').addEventListener('click', () => {
+            const nameInput = document.getElementById('input-jury-name');
+            const name = nameInput.value.trim();
+            if (!name) return;
+            
+            localStorage.setItem('jury_name', name);
+            onboardingComplete = true;
+            
+            document.getElementById('section-onboarding').style.display = 'none';
+            document.getElementById('btn-heart').style.display = 'flex';
+                        // Connect socket room
+             socket.emit('join_tfe_room', { role: 'jury' });
+            
+            // Update active views
+            updateActiveView(currentSlide);
+        });
+
+        // Sockets listener
+        socket.on('tfe_state_init', (state) => {
+            if (onboardingComplete) {
+                updateActiveView(state.currentSlide);
+            } else {
+                currentSlide = state.currentSlide;
+            }
+        });
+
+        socket.on('session_reset', () => {
+            console.log('🎮 Session réinitialisée par le présentateur.');
+            localStorage.removeItem('jury_name');
+            localStorage.removeItem('tfe_voted_quiz_1');
+            localStorage.removeItem('tfe_voted_quiz_2');
+            
+            onboardingComplete = false;
+            currentSlide = 1;
+            
+            document.getElementById('btn-heart').style.display = 'none';
+            document.getElementById('section-onboarding').style.display = 'flex';
+            
+            document.getElementById('section-waiting').style.display = 'none';
+            document.getElementById('section-quiz1').style.display = 'none';
+            document.getElementById('section-quiz2').style.display = 'none';
+            document.getElementById('section-qa').style.display = 'none';
+            document.getElementById('section-demo').style.display = 'none';
+            const thanksSec = document.getElementById('section-thanks');
+            if (thanksSec) thanksSec.style.display = 'none';
+            const bcryptSec = document.getElementById('section-bcrypt');
+            if (bcryptSec) bcryptSec.style.display = 'none';
+            
+            document.getElementById('input-jury-name').value = '';
+        });
+
+        socket.on('slide_changed', (slideNum) => {
+            currentSlide = slideNum;
+            if (onboardingComplete) {
+                updateActiveView(slideNum);
+            }
+        });
+
+        socket.on('quiz_reset', (quizId) => {
+            if (quizId === 1 || quizId === 'all') {
+                localStorage.removeItem('tfe_voted_quiz_1');
+            }
+            if (quizId === 2 || quizId === 'all') {
+                localStorage.removeItem('tfe_voted_quiz_2');
+            }
+            if (onboardingComplete) {
+                updateActiveView(currentSlide);
+            }
+        });
+
+        // View Router
+        function updateActiveView(slideNum) {
+            const waitingSec = document.getElementById('section-waiting');
+            const quiz1Sec = document.getElementById('section-quiz1');
+            const quiz2Sec = document.getElementById('section-quiz2');
+            const qaSec = document.getElementById('section-qa');
+            const demoSec = document.getElementById('section-demo');
+            const thanksSec = document.getElementById('section-thanks');
+            const bcryptSec = document.getElementById('section-bcrypt');
+            
+            // Hide all views first
+            waitingSec.style.display = 'none';
+            quiz1Sec.style.display = 'none';
+            quiz2Sec.style.display = 'none';
+            qaSec.style.display = 'none';
+            demoSec.style.display = 'none';
+            if (thanksSec) thanksSec.style.display = 'none';
+            if (bcryptSec) bcryptSec.style.display = 'none';
+
+            if (slideNum === 4) {
+                // Quiz 1
+                quiz1Sec.style.display = 'flex';
+                const hasVoted = localStorage.getItem('tfe_voted_quiz_1');
+                const controls = document.getElementById('quiz1-active-controls');
+                const feedback = document.getElementById('quiz1-feedback');
+                
+                if (hasVoted) {
+                    controls.style.display = 'none';
+                    feedback.textContent = `Vote enregistré (Choix ${hasVoted}). Merci.`;
+                    feedback.style.display = 'block';
+                } else {
+                    controls.style.display = 'flex';
+                    feedback.style.display = 'none';
+                    document.querySelectorAll('#quiz1-active-controls .btn-vote-circle').forEach(b => {
+                        b.disabled = false;
+                    });
+                }
+            } else if (slideNum === 8) {
+                // Quiz 2
+                quiz2Sec.style.display = 'flex';
+                const hasVoted = localStorage.getItem('tfe_voted_quiz_2');
+                const controls = document.getElementById('quiz2-active-controls');
+                const feedback = document.getElementById('quiz2-feedback');
+                
+                if (hasVoted) {
+                    controls.style.display = 'none';
+                    feedback.textContent = `Vote enregistré (Choix ${hasVoted}). Merci.`;
+                    feedback.style.display = 'block';
+                } else {
+                    controls.style.display = 'flex';
+                    feedback.style.display = 'none';
+                    document.querySelectorAll('#quiz2-active-controls .btn-vote-circle').forEach(b => {
+                        b.disabled = false;
+                    });
+                }
+            } else if (slideNum === 10) {
+                // Bcrypt Simulator (Slide 10)
+                if (bcryptSec) bcryptSec.style.display = 'flex';
+            } else if (slideNum === 12) {
+                // Demo (Slide 12)
+                demoSec.style.display = 'flex';
+                
+                // Configure dynamic visitation redirect URL with custom name
+                const btnVisitDemo = document.getElementById('btn-visit-ch4to-demo');
+                const juryName = localStorage.getItem('jury_name') || 'Jure';
+                btnVisitDemo.href = `/index.html?quickLogin=true&name=${encodeURIComponent(juryName)}`;
+            } else if (slideNum === 13) {
+                // Q&A (Slide 13)
+                qaSec.style.display = 'flex';
+            } else if (slideNum >= 14) {
+                // Thank you (Slide 14+)
+                if (thanksSec) thanksSec.style.display = 'flex';
+            } else {
+                // Waiting screen
+                waitingSec.style.display = 'flex';
+                
+                // Set descriptive waiting texts based on slide titles
+                const titles = {
+                    1: "Page de Garde & Introduction",
+                    2: "Contexte & État de l'art",
+                    3: "Objectifs de l'Application",
+                    5: "Modélisation de la Base de Données",
+                    6: "Gestion du Temps Réel via WebSockets",
+                    7: "Architecture de Communication WebRTC",
+                    9: "Sécurité et Intégrité du Système",
+                    11: "Gestion de Projet & Processus Incrémental"
+                };
+                const desc = titles[slideNum] || "Présentation TFE";
+                document.getElementById('waiting-section-text').innerHTML = `Section active : <strong>${desc}</strong>.<br>Patientez jusqu'au quiz interactif... La question s'affichera automatiquement ici.`;
+            }
+        }
+
+        // Vote submits
+        const voteButtons = document.querySelectorAll('.btn-vote-circle');
+        voteButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const quizId = button.getAttribute('data-quiz');
+                const choice = button.getAttribute('data-choice');
+                
+                if (localStorage.getItem('tfe_voted_quiz_' + quizId)) return;
+                
+                // Save state
+                localStorage.setItem('tfe_voted_quiz_' + quizId, choice);
+                
+                // Emit socket vote
+                socket.emit('submit_vote', {
+                    quizId: parseInt(quizId),
+                    option: choice,
+                    name: localStorage.getItem('jury_name')
+                });
+                
+                // Disable choices on UI
+                const activeContainer = quizId == 1 ? 'quiz1-active-controls' : 'quiz2-active-controls';
+                document.querySelectorAll(`#${activeContainer} .btn-vote-circle`).forEach(btn => btn.disabled = true);
+                
+                document.getElementById(activeContainer).style.display = 'none';
+                const feedback = document.getElementById(quizId == 1 ? 'quiz1-feedback' : 'quiz2-feedback');
+                feedback.textContent = `Vote enregistré (Choix ${choice}). Merci.`;
+                feedback.style.display = 'block';
+            });
+        });
+
+        // Floating Hearts FAB Reaction
+        const btnHeart = document.getElementById('btn-heart');
+        btnHeart.addEventListener('click', () => {
+            socket.emit('send_reaction', {
+                type: 'heart',
+                senderName: localStorage.getItem('jury_name')
+            });
+            
+            // Mini animation feedback
+            btnHeart.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                btnHeart.style.transform = '';
+            }, 100);
+        });
+
+        // Q&A Question submits
+        const qaText = document.getElementById('qa-text');
+        const charCount = document.getElementById('char-count');
+        const btnSendQa = document.getElementById('btn-send-qa');
+        const qaToast = document.getElementById('qa-toast');
+
+        qaText.addEventListener('input', () => {
+            charCount.textContent = qaText.value.length;
+        });
+
+        btnSendQa.addEventListener('click', () => {
+            const message = qaText.value.trim();
+            if (!message) return;
+
+            // Send question to server with juré's custom name
+            socket.emit('submit_question', {
+                text: message,
+                senderName: localStorage.getItem('jury_name') || 'Juré'
+            });
+
+            // Clear input fields
+            qaText.value = '';
+            charCount.textContent = '0';
+
+            // Show Toast
+            qaToast.style.display = 'block';
+            btnSendQa.disabled = true;
+            
+            setTimeout(() => {
+                qaToast.style.display = 'none';
+                btnSendQa.disabled = false;
+            }, 3000);
+        });
+
+        // --- Bcrypt Hashing Playground Functions for Jury ---
+        let currentJuryBcryptSalt = "";
+        let currentJuryBcryptHash = "";
+        
+        function generateRandomBcryptSalt() {
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./";
+            let salt = "";
+            for (let i = 0; i < 22; i++) {
+                salt += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+            }
+            return salt;
+        }
+
+        function resetJuryBcryptSalt() {
+            currentJuryBcryptSalt = generateRandomBcryptSalt();
+            const inputEl = document.getElementById('bcrypt-jury-input');
+            const val = inputEl ? inputEl.value : "";
+            onJuryBcryptInput(val);
+        }
+
+        function sha256Fallback(password, salt) {
+            const str = password + salt;
+            let hash1 = 5381;
+            let hash2 = 52711;
+            for (let i = 0; i < str.length; i++) {
+                const char = str.charCodeAt(i);
+                hash1 = ((hash1 << 5) + hash1) ^ char;
+                hash2 = ((hash2 << 5) + hash2) ^ char;
+            }
+            const combined = (hash1 >>> 0).toString(36) + (hash2 >>> 0).toString(36) + (hash1 ^ hash2).toString(36);
+            const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./";
+            let result = "";
+            for (let i = 0; i < 31; i++) {
+                const code = combined.charCodeAt(i % combined.length) + i;
+                result += alphabet.charAt(code % alphabet.length);
+            }
+            return result;
+        }
+
+        async function onJuryBcryptInput(password) {
+            const btnSend = document.getElementById('btn-send-bcrypt');
+            if (!btnSend) return;
+            
+            if (!password) {
+                btnSend.style.display = 'none';
+                btnSend.disabled = true;
+                currentJuryBcryptHash = "";
+                return;
+            }
+            
+            if (!currentJuryBcryptSalt) {
+                currentJuryBcryptSalt = generateRandomBcryptSalt();
+            }
+            
+            let base64 = "";
+            if (window.crypto && crypto.subtle) {
+                try {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(password + currentJuryBcryptSalt);
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                    const hashArray = Array.from(new Uint8Array(hashBuffer));
+                    base64 = btoa(String.fromCharCode.apply(null, hashArray))
+                        .replace(/\+/g, '.')
+                        .replace(/=/g, '')
+                        .substring(0, 31);
+                } catch (e) {
+                    base64 = sha256Fallback(password, currentJuryBcryptSalt);
+                }
+            } else {
+                base64 = sha256Fallback(password, currentJuryBcryptSalt);
+            }
+                
+            currentJuryBcryptHash = base64;
+            
+            btnSend.style.display = 'block';
+            btnSend.disabled = false;
+        }
+
+        function submitJuryBcrypt() {
+            if (!currentJuryBcryptSalt || !currentJuryBcryptHash) return;
+            
+            const btnSend = document.getElementById('btn-send-bcrypt');
+            if (btnSend) {
+                btnSend.textContent = "Hash envoyé !";
+                btnSend.disabled = true;
+                setTimeout(() => {
+                    if (btnSend) {
+                        btnSend.textContent = "Envoyer le hash à l'écran géant";
+                        btnSend.disabled = false;
+                    }
+                }, 2000);
+            }
+            
+            socket.emit('submit_bcrypt_hash', {
+                salt: currentJuryBcryptSalt,
+                hash: currentJuryBcryptHash,
+                senderName: localStorage.getItem('jury_name') || 'Juré'
+            });
+        }
+    </script>
+</body>
+</html>

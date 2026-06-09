@@ -34,6 +34,26 @@ router.get('/search', requireAuth, async (req, res) => {
       return res.json([]);
     }
     
+    const tfeState = req.app.get('tfeState');
+    const activeUsers = req.app.get('activeUsers');
+    const allowedUsernames = new Set(['Wilmus']);
+
+    if (tfeState) {
+      if (tfeState.juryUsernames) {
+        for (const u of tfeState.juryUsernames) {
+          allowedUsernames.add(u);
+        }
+      }
+    }
+    
+    if (activeUsers) {
+      for (const info of activeUsers.values()) {
+        if (info && info.username) {
+          allowedUsernames.add(info.username);
+        }
+      }
+    }
+    
     const users = await prisma.user.findMany({
       where: {
         AND: [
@@ -43,7 +63,8 @@ router.get('/search', requireAuth, async (req, res) => {
               { email: { contains: query } }
             ]
           },
-          { id: { not: req.session.userId } }
+          { id: { not: req.session.userId } },
+          { username: { in: Array.from(allowedUsernames) } }
         ]
       },
       select: {
